@@ -1,6 +1,6 @@
 <script setup>
-import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
 import { useUserStore } from './stores/user.js'
 import { 
   LayoutDashboard, 
@@ -12,11 +12,18 @@ import {
   Bell,
   Plus,
   Building,
-  UsersRound
+  UsersRound,
+  LogOut
 } from 'lucide-vue-next'
 
 const route = useRoute()
 const userStore = useUserStore()
+const router = useRouter()
+
+// Initialiser le store au démarrage
+onMounted(() => {
+  userStore.initFromStorage()
+})
 
 // Navigation items avec permissions
 const navigationItems = computed(() => {
@@ -144,28 +151,28 @@ const getRoleBadge = () => {
   }
   return badges[userStore.user.role] || userStore.user.role
 }
+
+const handleLogout = () => {
+  userStore.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <!-- Si non connecté, afficher seulement la vue (page de login) -->
+  <div v-if="!userStore.isAuthenticated" class="min-h-screen">
+    <router-view />
+  </div>
+
+  <!-- Si connecté, afficher le layout complet -->
+  <div v-else class="flex h-screen bg-gray-50">
     <!-- Sidebar -->
     <div class="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
       <!-- Header -->
       <div class="p-6 border-b border-gray-200">
         <h1 class="text-xl font-bold text-gray-900">Congés</h1>
-        <p class="text-sm text-gray-600 mt-1">{{ getRoleBadge() }}</p>
+        <p class="text-sm text-gray-600 mt-1">{{ getRoleBadge() }} - {{ userStore.user.departement }}</p>
         <!-- Sélecteur de rôle pour test -->
-        <div class="mt-3">
-          <select 
-            @change="userStore.setRole($event.target.value)"
-            :value="userStore.user.role"
-            class="text-xs px-2 py-1 border rounded text-gray-600"
-          >
-            <option value="employe">Employé</option>
-            <option value="chef_service">Chef de service</option>
-            <option value="drh">DRH</option>
-          </select>
-        </div>
       </div>
       
       <!-- Navigation -->
@@ -176,7 +183,7 @@ const getRoleBadge = () => {
             v-for="item in mainItems"
             :key="item.path"
             :to="item.path"
-            class="flex items-center space-x-3 px-3  text-sm font-medium rounded-lg transition-colors"
+            class="flex items-center space-x-3 px-3 text-sm font-medium rounded-lg transition-colors"
             :class="$route.path === item.path ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'"
           >
             <div class="flex items-center py-2">
@@ -188,9 +195,8 @@ const getRoleBadge = () => {
         
         <!-- Admin Section -->
         <div v-if="adminItems.length > 0" class="mt-8 pt-3 border-t border-gray-200">
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 mb-3">Administration</h3>
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 mb-3">Administration</h3>
           <div class="px-3 space-y-2">
-            
             <router-link
               v-for="item in adminItems"
               :key="item.path"
@@ -208,15 +214,22 @@ const getRoleBadge = () => {
       </nav>
       
       <!-- User profile -->
-      <div class="p-4 border-t border-gray-200">
+      <div class="p-3 border-t border-gray-200">
         <div class="flex items-center">
-          <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-            <span class="text-white font-semibold text-sm">{{ userStore.user.nom.split(' ').map(n => n[0]).join('') }}</span>
+          <div class="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center">
+            <span class="font-semibold text-sm">{{ userStore.user.nom.split(' ').slice(0, 2).map(n => n[0]).join('') }}</span>
           </div>
           <div class="ml-3 flex-1">
             <p class="text-sm font-medium text-gray-900">{{ userStore.user.nom }}</p>
             <p class="text-xs text-gray-500">{{ userStore.user.email }}</p>
           </div>
+          <button 
+            @click="handleLogout"
+            class="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Déconnexion"
+          >
+            <LogOut :size="18" />
+          </button>
         </div>
       </div>
     </div>
@@ -236,12 +249,6 @@ const getRoleBadge = () => {
               <Bell :size="20" />
               <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">2</span>
             </button>
-            
-            <!-- Nouvelle demande -->
-            <!-- <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-              <Plus :size="16" class="mr-2" />
-              Demander congé
-            </button> -->
           </div>
         </div>
       </header>
