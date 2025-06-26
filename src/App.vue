@@ -214,7 +214,7 @@ const handleLogout = () => {
       </nav>
       
       <!-- User profile -->
-      <div class="p-3 border-t border-gray-200">
+      <div class="py-3 ps-1 border-t border-gray-200">
         <div class="flex items-center">
           <div class="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center">
             <span class="font-semibold text-sm">{{ userStore.user.nom.split(' ').slice(0, 2).map(n => n[0]).join('') }}</span>
