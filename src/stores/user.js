@@ -4,14 +4,23 @@ import { defineStore } from 'pinia'
 export const useUserStore = defineStore('user', () => {
   // État de l'authentification
   const isAuthenticated = ref(false)
+  const token = ref(null)
+  const loading = ref(false)
+  const error = ref(null)
   
-  // État de l'utilisateur (mock)
+  // État de l'utilisateur (structure complète de l'API)
   const user = ref({
     id: null,
     nom: '',
+    prenom: '',
     email: '',
+    nom_complet: '',
     role: '',
-    departement: ''
+    telephone: '',
+    poste: '',
+    date_embauche: null,
+    solde_conges: 0,
+    departement_id: null
   })
 
   // Utilisateurs de test
@@ -57,8 +66,53 @@ export const useUserStore = defineStore('user', () => {
   const canViewRapports = computed(() => true) // Tous
   const canViewParametres = computed(() => true) // Tous
 
-  // Actions d'authentification
-  function login(username, password) {
+  // Actions d'authentification via API
+  async function login(email, password) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      // Préparer les données du formulaire
+      const formData = new FormData()
+      formData.append('username', email)
+      formData.append('password', password)
+      
+      // Appel à l'API de login
+      const response = await fetch('http://localhost:6500/api/auth/login', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Erreur de connexion')
+      }
+      
+      const data = await response.json()
+      
+      // Stocker le token et les informations utilisateur
+      token.value = data.access_token
+      user.value = data.user
+      isAuthenticated.value = true
+      
+      // Persistance dans localStorage
+      localStorage.setItem('authToken', data.access_token)
+      localStorage.setItem('userData', JSON.stringify(data.user))
+      localStorage.setItem('isAuthenticated', 'true')
+      
+      return data
+      
+    } catch (err) {
+      error.value = err.message || 'Erreur de connexion'
+      console.error('Erreur de login:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Fonction de login mock pour les tests (conservée pour compatibilité)
+  function loginMock(username, password) {
     if (password !== 'password') {
       throw new Error('Mot de passe incorrect')
     }
@@ -87,25 +141,45 @@ export const useUserStore = defineStore('user', () => {
     user.value = {
       id: null,
       nom: '',
+      prenom: '',
       email: '',
+      nom_complet: '',
       role: '',
-      departement: ''
+      telephone: '',
+      poste: '',
+      date_embauche: null,
+      solde_conges: 0,
+      departement_id: null
     }
+    token.value = null
     isAuthenticated.value = false
+    error.value = null
     
     // Nettoyer localStorage
-    localStorage.removeItem('user')
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('userData')
+    localStorage.removeItem('user') // Pour compatibilité
     localStorage.removeItem('isAuthenticated')
   }
 
   // Initialiser depuis localStorage au démarrage
   function initFromStorage() {
-    const savedUser = localStorage.getItem('user')
+    const savedToken = localStorage.getItem('authToken')
+    const savedUserData = localStorage.getItem('userData')
     const savedAuth = localStorage.getItem('isAuthenticated')
     
-    if (savedUser && savedAuth === 'true') {
-      user.value = JSON.parse(savedUser)
+    // Priorité aux nouvelles clés
+    if (savedToken && savedUserData && savedAuth === 'true') {
+      token.value = savedToken
+      user.value = JSON.parse(savedUserData)
       isAuthenticated.value = true
+    } else {
+      // Fallback vers l'ancien système pour compatibilité
+      const savedUser = localStorage.getItem('user')
+      if (savedUser && savedAuth === 'true') {
+        user.value = JSON.parse(savedUser)
+        isAuthenticated.value = true
+      }
     }
   }
 
@@ -124,8 +198,36 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // Fonction pour récupérer les informations utilisateur depuis l'API
+  async function fetchUserInfo() {
+    if (!token.value) return null
+    
+    try {
+      const response = await fetch('http://localhost:6500/api/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token.value}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        const userData = await response.json()
+        user.value = userData
+        localStorage.setItem('userData', JSON.stringify(userData))
+        return userData
+      }
+    } catch (err) {
+      console.error('Erreur lors de la récupération des infos utilisateur:', err)
+    }
+    
+    return null
+  }
+
   return {
     user,
+    token,
+    loading,
+    error,
     isAuthenticated,
     isEmploye,
     isChefService,
@@ -139,8 +241,10 @@ export const useUserStore = defineStore('user', () => {
     canViewRapports,
     canViewParametres,
     login,
+    loginMock,
     logout,
     initFromStorage,
+    fetchUserInfo,
     setRole,
     setUser
   }

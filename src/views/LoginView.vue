@@ -1,43 +1,39 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/user.js'
+import { useAuthStore } from '../stores/auth.js'
 
 export default {
   name: 'LoginView',
   setup() {
     const router = useRouter()
-    const userStore = useUserStore()
+    const authStore = useAuthStore()
     
-    const username = ref('')
+    const email = ref('')
     const password = ref('')
-    const error = ref('')
-    const isLoading = ref(false)
+    
+    // Initialiser depuis localStorage
+    authStore.initFromStorage()
     
     const handleLogin = async () => {
-      if (!username.value || !password.value) {
-        error.value = 'Veuillez remplir tous les champs'
+      if (!email.value || !password.value) {
         return
       }
       
-      isLoading.value = true
-      error.value = ''
-      
       try {
-        userStore.login(username.value, password.value)
+        await authStore.login(email.value, password.value)
         router.push('/')
       } catch (err) {
-        error.value = err.message
-      } finally {
-        isLoading.value = false
+        // L'erreur est déjà gérée dans le store
+        console.error('Erreur de connexion:', err)
       }
     }
     
     return {
-      username,
+      email,
       password,
-      error,
-      isLoading,
+      error: authStore.error,
+      isLoading: authStore.loading,
       handleLogin
     }
   }
@@ -150,16 +146,16 @@ export default {
         <form class="space-y-6" @submit.prevent="handleLogin">
           <div class="space-y-4">
             <div>
-              <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
-                Nom d'utilisateur
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                Adresse email
               </label>
               <input
-                id="username"
-                v-model="username"
-                type="text"
+                id="email"
+                v-model="email"
+                type="email"
                 required
                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
-                placeholder="drh, chs ou employe"
+                placeholder="votre.email@example.com"
               />
             </div>
             
@@ -173,7 +169,7 @@ export default {
                 type="password"
                 required
                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
-                placeholder="password"
+                placeholder="••••••••"
               />
             </div>
           </div>
@@ -210,19 +206,22 @@ export default {
           <!-- Aide -->
           <div class="mt-8">
             <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-              <h3 class="text-sm font-medium text-gray-900 mb-3">Comptes de test :</h3>
+              <h3 class="text-sm font-medium text-gray-900 mb-3">Comptes de test disponibles :</h3>
               <div class="space-y-2 text-sm text-gray-600">
                 <div class="flex justify-between">
                   <span class="font-medium">DRH :</span>
-                  <span class="font-mono text-xs">drh / password</span>
+                  <span class="font-mono text-xs">drh@example.com</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="font-medium">Chef de service :</span>
-                  <span class="font-mono text-xs">chs / password</span>
+                  <span class="font-mono text-xs">chef@example.com</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="font-medium">Employé :</span>
-                  <span class="font-mono text-xs">employe / password</span>
+                  <span class="font-mono text-xs">employe@example.com</span>
+                </div>
+                <div class="text-center mt-3 pt-2 border-t border-gray-200">
+                  <span class="text-xs text-gray-500">Mot de passe : <code class="bg-gray-100 px-1 rounded">password</code></span>
                 </div>
               </div>
             </div>

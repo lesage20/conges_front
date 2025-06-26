@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '../stores/user.js'
+import { useAuthStore } from '../stores/auth.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -64,17 +64,29 @@ const router = createRouter({
       component: () => import('../views/EmployesDrhView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/debug-api',
+      name: 'debug-api',
+      component: () => import('../views/ApiDebugView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/test-api',
+      name: 'test-api',
+      component: () => import('../views/TestApiView.vue'),
+      meta: { requiresAuth: true }
+    },
   ],
 })
 
 // Garde de navigation pour l'authentification
 router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
+  const authStore = useAuthStore()
   
   // Initialiser le store depuis localStorage
-  userStore.initFromStorage()
+  authStore.initFromStorage()
   
-  const isAuthenticated = userStore.isAuthenticated
+  const isAuthenticated = authStore.isAuthenticated
   const requiresAuth = to.meta.requiresAuth
   const requiresGuest = to.meta.requiresGuest
   

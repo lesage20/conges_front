@@ -1,7 +1,7 @@
 <script setup>
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { computed, onMounted } from 'vue'
-import { useUserStore } from './stores/user.js'
+import { useAuthStore } from './stores/auth.js'
 import { 
   LayoutDashboard, 
   FileText, 
@@ -17,40 +17,38 @@ import {
 } from 'lucide-vue-next'
 
 const route = useRoute()
-const userStore = useUserStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 // Initialiser le store au démarrage
 onMounted(() => {
-  userStore.initFromStorage()
+  authStore.initFromStorage()
 })
 
 // Navigation items avec permissions
 const navigationItems = computed(() => {
   const items = []
   
+  if (!authStore.user) return items
+  
   // Dashboard - visible par tous
-  if (userStore.canViewDashboard) {
-    items.push({
-      path: '/',
-      name: 'Tableau de bord',
-      icon: LayoutDashboard,
-      section: 'main'
-    })
-  }
+  items.push({
+    path: '/',
+    name: 'Tableau de bord',
+    icon: LayoutDashboard,
+    section: 'main'
+  })
   
   // Demandes - visible par tous
-  if (userStore.canViewDemandes) {
-    items.push({
-      path: '/demandes',
-      name: 'Mes demandes',
-      icon: FileText,
-      section: 'main'
-    })
-  }
+  items.push({
+    path: '/demandes',
+    name: 'Mes demandes',
+    icon: FileText,
+    section: 'main'
+  })
   
   // Calendrier - visible par chef de service et DRH
-  if (userStore.canViewCalendrier) {
+  if (authStore.user.role === 'chef_service' || authStore.user.role === 'drh') {
     items.push({
       path: '/calendrier',
       name: 'Calendrier',
@@ -60,7 +58,7 @@ const navigationItems = computed(() => {
   }
   
   // Mon équipe - visible par chef de service uniquement
-  if (userStore.canViewMonEquipe) {
+  if (authStore.user.role === 'chef_service') {
     items.push({
       path: '/monequipe',
       name: 'Mon équipe',
@@ -70,17 +68,15 @@ const navigationItems = computed(() => {
   }
   
   // Rapports - visible par tous
-  if (userStore.canViewRapports) {
-    items.push({
-      path: '/rapports',
-      name: 'Rapports',
-      icon: BarChart3,
-      section: 'main'
-    })
-  }
+  items.push({
+    path: '/rapports',
+    name: 'Rapports',
+    icon: BarChart3,
+    section: 'main'
+  })
   
   // Employés - visible par DRH uniquement
-  if (userStore.canViewEmployes) {
+  if (authStore.user.role === 'drh') {
     items.push({
       path: '/employes',
       name: 'Employés',
@@ -90,7 +86,7 @@ const navigationItems = computed(() => {
   }
   
   // Départements - visible par DRH uniquement
-  if (userStore.canViewDepartements) {
+  if (authStore.user.role === 'drh') {
     items.push({
       path: '/departements',
       name: 'Départements',
@@ -100,14 +96,12 @@ const navigationItems = computed(() => {
   }
   
   // Paramètres - visible par tous
-  if (userStore.canViewParametres) {
-    items.push({
-      path: '/parametres',
-      name: 'Paramètres',
-      icon: Settings,
-      section: 'admin'
-    })
-  }
+  items.push({
+    path: '/parametres',
+    name: 'Paramètres',
+    icon: Settings,
+    section: 'admin'
+  })
   
   return items
 })
@@ -149,18 +143,22 @@ const getRoleBadge = () => {
     'chef_service': 'Chef de service',
     'drh': 'DRH'
   }
-  return badges[userStore.user.role] || userStore.user.role
+  return authStore.user ? badges[authStore.user.role] || authStore.user.role : ''
 }
 
-const handleLogout = () => {
-  userStore.logout()
+const getDepartmentName = () => {
+  return authStore.user?.departement_nom || authStore.user?.departement || 'Non défini'
+}
+
+const handleLogout = async () => {
+  await authStore.logout()
   router.push('/login')
 }
 </script>
 
 <template>
   <!-- Si non connecté, afficher seulement la vue (page de login) -->
-  <div v-if="!userStore.isAuthenticated" class="min-h-screen">
+  <div v-if="!authStore.isAuthenticated" class="min-h-screen">
     <router-view />
   </div>
 
@@ -171,8 +169,7 @@ const handleLogout = () => {
       <!-- Header -->
       <div class="p-6 border-b border-gray-200">
         <h1 class="text-xl font-bold text-gray-900">Congés</h1>
-        <p class="text-sm text-gray-600 mt-1">{{ getRoleBadge() }} - {{ userStore.user.departement }}</p>
-        <!-- Sélecteur de rôle pour test -->
+        <p class="text-sm text-gray-600 mt-1">{{ getRoleBadge() }} - {{ getDepartmentName() }}</p>
       </div>
       
       <!-- Navigation -->
@@ -214,14 +211,14 @@ const handleLogout = () => {
       </nav>
       
       <!-- User profile -->
-      <div class="py-3 ps-1 border-t border-gray-200">
+      <div class="py-3 ps-1 border-t border-gray-200" v-if="authStore.user">
         <div class="flex items-center">
           <div class="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center">
-            <span class="font-semibold text-sm">{{ userStore.user.nom.split(' ').slice(0, 2).map(n => n[0]).join('') }}</span>
+            <span class="font-semibold text-sm">{{ authStore.user.nom ? authStore.user.nom.split(' ').slice(0, 2).map(n => n[0]).join('') : 'U' }}</span>
           </div>
           <div class="ml-3 flex-1">
-            <p class="text-sm font-medium text-gray-900">{{ userStore.user.nom }}</p>
-            <p class="text-xs text-gray-500">{{ userStore.user.email }}</p>
+            <p class="text-sm font-medium text-gray-900">{{ authStore.user.nom || 'Utilisateur' }}</p>
+            <p class="text-xs text-gray-500">{{ authStore.user.email || '' }}</p>
           </div>
           <button 
             @click="handleLogout"
