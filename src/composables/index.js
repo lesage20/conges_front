@@ -11,7 +11,7 @@ export { useDepartements } from './useDepartements'
 
 // Configuration par défaut de l'API
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8000/api',
+  BASE_URL: 'http://localhost:6500/api',
   TIMEOUT: 30000,
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json'

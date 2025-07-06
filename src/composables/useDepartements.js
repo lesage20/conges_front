@@ -4,10 +4,8 @@ export function useDepartements() {
   const api = useApi()
 
   // Récupérer tous les départements
-  const getDepartements = async (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString()
-    const endpoint = queryParams ? `/departements?${queryParams}` : '/departements'
-    return await api.get(endpoint)
+  const getDepartements = async () => {
+    return await api.get('/departements/')
   }
 
   // Récupérer un département par ID
@@ -15,29 +13,29 @@ export function useDepartements() {
     return await api.get(`/departements/${id}`)
   }
 
-  // Créer un nouveau département
+  // Créer un nouveau département (DRH uniquement)
   const createDepartement = async (departementData) => {
-    return await api.post('/departements', departementData)
+    return await api.post('/departements/', departementData)
   }
 
-  // Mettre à jour un département
+  // Mettre à jour un département (DRH uniquement)
   const updateDepartement = async (id, departementData) => {
     return await api.put(`/departements/${id}`, departementData)
   }
 
-  // Supprimer un département
+  // Supprimer un département (DRH uniquement)
   const deleteDepartement = async (id) => {
     return await api.delete(`/departements/${id}`)
   }
 
-  // Récupérer les statistiques d'un département
-  const getStatistiquesDepartement = async (id) => {
-    return await api.get(`/departements/${id}/statistiques`)
+  // Assigner un chef de département (DRH uniquement)
+  const assignChefDepartement = async (departementId, chefId) => {
+    return await api.put(`/departements/${departementId}/chef?chef_id=${chefId}`)
   }
 
-  // Récupérer les employés d'un département
-  const getEmployesDepartement = async (id) => {
-    return await api.get(`/departements/${id}/employes`)
+  // Récupérer les statistiques d'un département
+  const getDepartementStats = async (id) => {
+    return await api.get(`/departements/${id}/stats`)
   }
 
   return {
@@ -52,7 +50,7 @@ export function useDepartements() {
     createDepartement,
     updateDepartement,
     deleteDepartement,
-    getStatistiquesDepartement,
-    getEmployesDepartement
+    assignChefDepartement,
+    getDepartementStats
   }
 } 

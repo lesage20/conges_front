@@ -1,235 +1,525 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import BaseModal from '@/components/BaseModal.vue'
+import { useDemandesConges } from '@/composables/useDemandesConges'
+import { useAuth } from '@/composables/useAuth'
+
+const { 
+  loading, 
+  error,
+  getDemandes, 
+  getDemandesByUser,
+  createDemande, 
+  approuverDemande, 
+  refuserDemande 
+} = useDemandesConges()
+
+const { user } = useAuth()
+
+const showModal = ref(false)
+const selectedFilter = ref('all')
+const selectedStatus = ref('all')
+const demandes = ref([])
+const isSubmitting = ref(false)
+
+const formData = ref({
+  type: 'conges_payes',
+  duree: '',
+  dateDebut: '',
+  dateFin: '',
+  motif: ''
+})
+
+// Computed properties
+const filteredDemandes = computed(() => {
+  let filtered = demandes.value
+
+  if (selectedStatus.value !== 'all') {
+    // Adapter les statuts selon l'API backend
+    const statusMap = {
+      'En attente': 'en_attente',
+      'Approuvée': 'approuve',
+      'Refusée': 'refuse'
+    }
+    const apiStatus = statusMap[selectedStatus.value]
+    filtered = filtered.filter(d => d.statut === apiStatus)
+  }
+
+  return filtered
+})
+
+const pendingCount = computed(() => {
+  return demandes.value.filter(d => d.statut === 'en_attente').length
+})
+
+const approvedCount = computed(() => {
+  return demandes.value.filter(d => d.statut === 'approuve').length
+})
+
+const rejectedCount = computed(() => {
+  return demandes.value.filter(d => d.statut === 'refuse').length
+})
+
+const isFormValid = computed(() => {
+  return formData.value.type && formData.value.dateDebut && formData.value.dateFin
+})
+
+// Methods
+const loadDemandes = async () => {
+  try {
+    // Récupérer les demandes de l'utilisateur connecté
+    if (user.value) {
+      const response = await getDemandesByUser(user.value.id)
+      demandes.value = response || []
+    } else {
+      // Si pas d'utilisateur connecté, récupérer toutes les demandes (pour DRH)
+      const response = await getDemandes()
+      demandes.value = response || []
+    }
+  } catch (err) {
+    console.error('Erreur lors du chargement des demandes:', err)
+    demandes.value = []
+  }
+}
+
+const getStatusColor = (statut) => {
+  switch (statut) {
+    case 'en_attente': return 'bg-orange-100 text-orange-800'
+    case 'approuve': return 'bg-green-100 text-green-800'
+    case 'refuse': return 'bg-red-100 text-red-800'
+    default: return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const getStatusLabel = (statut) => {
+  switch (statut) {
+    case 'en_attente': return 'En attente'
+    case 'approuve': return 'Approuvée'
+    case 'refuse': return 'Refusée'
+    default: return statut
+  }
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+const formatDateFr = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+const approveDemande = async (demande) => {
+  try {
+    await approuverDemande(demande.id)
+    // Recharger les demandes après approbation
+    await loadDemandes()
+  } catch (err) {
+    console.error('Erreur lors de l\'approbation:', err)
+  }
+}
+
+const rejectDemande = async (demande) => {
+  try {
+    await refuserDemande(demande.id)
+    // Recharger les demandes après refus
+    await loadDemandes()
+  } catch (err) {
+    console.error('Erreur lors du refus:', err)
+  }
+}
+
+const viewDetails = (demande) => {
+  // Ouvrir un modal ou naviguer vers une page de détails
+  console.log('Voir détails:', demande)
+}
+
+const resetForm = () => {
+  formData.value = {
+    type: 'conges_payes',
+    duree: '',
+    dateDebut: '',
+    dateFin: '',
+    motif: ''
+  }
+}
+
+const submitDemande = async () => {
+  if (!isFormValid.value || isSubmitting.value) return
+  
+  isSubmitting.value = true
+  
+  try {
+    // Mapper les données du formulaire vers le format API
+    const demandeData = {
+      type_conge: formData.value.type,
+      date_debut: formData.value.dateDebut,
+      date_fin: formData.value.dateFin || formData.value.dateDebut,
+      motif: formData.value.motif || 'Demande de congé',
+      demandeur_id: user.value.id
+    }
+    
+    await createDemande(demandeData)
+    
+    // Recharger les demandes pour voir la nouvelle
+    await loadDemandes()
+    
+    // Fermer le modal et réinitialiser le formulaire
+    showModal.value = false
+    resetForm()
+    
+    console.log('Demande créée avec succès')
+    
+  } catch (err) {
+    console.error('Erreur lors de la création de la demande:', err)
+    // TODO: Afficher une notification d'erreur
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// Charger les données au montage du composant
+onMounted(() => {
+  loadDemandes()
+})
+</script>
+
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Mes demandes de congés</h1>
-        <p class="text-gray-600">Gérez vos demandes de congés et RTT</p>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Mes demandes de congés</h1>
+          <p class="text-gray-600 mt-2">Gérez vos demandes de congés payés</p>
+        </div>
+        <button 
+          @click="showModal = true"
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Nouvelle demande
+        </button>
       </div>
-      <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-        Nouvelle demande
-      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-orange-100 rounded-lg">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">En attente</p>
+            <p class="text-2xl font-bold text-gray-900">{{ pendingCount }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Approuvées</p>
+            <p class="text-2xl font-bold text-gray-900">{{ approvedCount }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-red-100 rounded-lg">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Refusées</p>
+            <p class="text-2xl font-bold text-gray-900">{{ rejectedCount }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div class="flex flex-wrap gap-4">
-        <div class="flex-1 min-w-64">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
-          <div class="relative">
-            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Rechercher une demande..."
-              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-          <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="approved">Approuvé</option>
-            <option value="rejected">Refusé</option>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center space-x-4">
+          <label class="text-sm font-medium text-gray-700">Filtrer par statut:</label>
+          <select 
+            v-model="selectedStatus"
+            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">Toutes</option>
+            <option value="En attente">En attente</option>
+            <option value="Approuvée">Approuvées</option>
+            <option value="Refusée">Refusées</option>
           </select>
         </div>
         
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
-          <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="">Tous les types</option>
-            <option value="vacation">Congés payés</option>
-            <option value="rtt">RTT</option>
-            <option value="sick">Arrêt maladie</option>
-            <option value="other">Autre</option>
-          </select>
-        </div>
+        <!-- <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Exporter
+        </button> -->
       </div>
     </div>
 
-    <!-- Demandes list -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Historique des demandes</h2>
-      </div>
-      
-      <div class="divide-y divide-gray-200">
-        <!-- Demande 1 -->
-        <div class="p-6 hover:bg-gray-50 transition-colors">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-4">
-                <div class="p-2 bg-blue-100 rounded-lg">
-                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-base font-medium text-gray-900">Congés d'été</h3>
-                  <p class="text-sm text-gray-600">Du 15 juillet au 30 juillet 2025 (12 jours)</p>
-                  <p class="text-xs text-gray-500">Demandé le 12 juin 2025</p>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-4">
-              <span class="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                Approuvé
-              </span>
-              <div class="flex space-x-2">
-                <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                  </svg>
-                </button>
-                <button class="p-2 text-gray-400 hover:text-red-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
+         <!-- Demandes list -->
+     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+       <div class="px-6 py-4 border-b border-gray-200">
+         <div class="flex items-center justify-between">
+           <h3 class="text-lg font-semibold text-gray-900">
+             Liste des demandes 
+             <span class="text-sm font-normal text-gray-600">({{ filteredDemandes.length }})</span>
+           </h3>
+           <div v-if="loading" class="flex items-center text-blue-600">
+             <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+             </svg>
+             <span class="text-sm">Chargement...</span>
+           </div>
+         </div>
+       </div>
+             
+       <!-- Message d'erreur -->
+       <div v-if="error && !loading" class="px-6 py-4 bg-red-50 border-l-4 border-red-400">
+         <div class="flex">
+           <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+           </svg>
+           <div class="ml-3">
+             <p class="text-sm text-red-700">
+               Erreur lors du chargement des demandes : {{ error }}
+             </p>
+             <button 
+               @click="loadDemandes"
+               class="mt-2 text-sm text-red-600 underline hover:text-red-800"
+             >
+               Réessayer
+             </button>
+           </div>
+         </div>
+       </div>
+
+       <!-- Message si aucune demande -->
+       <div v-if="!loading && !error && filteredDemandes.length === 0" class="px-6 py-8 text-center text-gray-500">
+         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+         </svg>
+         <p class="mt-2">Aucune demande de congé trouvée</p>
+         <p class="text-sm text-gray-400">Cliquez sur "Nouvelle demande" pour créer votre première demande</p>
+       </div>
+       
+       <div v-if="!loading && !error && filteredDemandes.length > 0" class="overflow-x-auto">
+         <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employé</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Période</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+                     <tbody class="bg-white divide-y divide-gray-200">
+             <tr v-for="demande in filteredDemandes" :key="demande.id" class="hover:bg-gray-50">
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div>
+                   <div class="text-sm font-medium text-gray-900">{{ demande.user?.nom || 'Utilisateur' }} {{ demande.user?.prenom || '' }}</div>
+                   <div class="text-sm text-gray-500">{{ demande.user?.departement?.nom || 'Non assigné' }}</div>
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="text-sm text-gray-900">Congés payés</div>
+                 <div class="text-sm text-gray-500">{{ demande.motif || 'Aucun motif' }}</div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="text-sm text-gray-900">
+                   {{ formatDate(demande.date_debut) }} - {{ formatDate(demande.date_fin) }}
+                 </div>
+                 <div class="text-sm text-gray-500">
+                   Demandé le {{ formatDate(demande.date_creation) }}
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span class="text-sm font-medium text-gray-900">{{ demande.nb_jours || 0 }} jour{{ (demande.nb_jours || 0) > 1 ? 's' : '' }}</span>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span :class="['inline-flex px-2 py-1 text-xs font-semibold rounded-full', getStatusColor(demande.statut)]">
+                   {{ getStatusLabel(demande.statut) }}
+                 </span>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                 <button 
+                   v-if="demande.statut === 'en_attente'"
+                   @click="approveDemande(demande)"
+                   class="text-green-600 hover:text-green-900 px-2 py-1 bg-green-50 rounded hover:bg-green-100 transition-colors"
+                   :disabled="loading"
+                 >
+                   Approuver
+                 </button>
+                 <button 
+                   v-if="demande.statut === 'en_attente'"
+                   @click="rejectDemande(demande)"
+                   class="text-red-600 hover:text-red-900 px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                   :disabled="loading"
+                 >
+                   Refuser
+                 </button>
+                 <button 
+                   @click="viewDetails(demande)"
+                   class="text-blue-600 hover:text-blue-900 px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                 >
+                   Détails
+                 </button>
+               </td>
+                          </tr>
+           </tbody>
+         </table>
         </div>
+     </div>
 
-        <!-- Demande 2 -->
-        <div class="p-6 hover:bg-gray-50 transition-colors">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-4">
-                <div class="p-2 bg-orange-100 rounded-lg">
-                  <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-base font-medium text-gray-900">RTT Pont de mai</h3>
-                  <p class="text-sm text-gray-600">Du 2 mai au 3 mai 2025 (2 jours)</p>
-                  <p class="text-xs text-gray-500">Demandé le 15 avril 2025</p>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-4">
-              <span class="px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
-                En attente
-              </span>
-              <div class="flex space-x-2">
-                <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                </button>
-                <button class="p-2 text-gray-400 hover:text-red-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+     <!-- Modal de nouvelle demande -->
+     <BaseModal 
+       v-model="showModal" 
+       title="Nouvelle demande de congé"
+       @close="resetForm"
+     >
+       <form @submit.prevent="submitDemande" class="space-y-6">
+         <!-- Type de congé -->
+         <div v-show="false">
+           <label class="block text-sm font-medium text-gray-700 mb-2">
+             Type de congé *
+           </label>
+           <select 
+            disabled
+             v-model="formData.type" 
+             required
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+           >
+             <option value="conges_payes">Congés payés</option>
+             <option value="rtt">RTT</option>
+             <option value="conges_maladie">Congés maladie</option>
+             <option value="conges_maternite">Congés maternité</option>
+             <option value="conges_paternite">Congés paternité</option>
+             <option value="conges_sans_solde">Congés sans solde</option>
+             <option value="autre">Autre</option>
+           </select>
+         </div>
 
-        <!-- Demande 3 -->
-        <div class="p-6 hover:bg-gray-50 transition-colors">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-4">
-                <div class="p-2 bg-red-100 rounded-lg">
-                  <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.866-.833-2.636 0L4.196 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-base font-medium text-gray-900">Congé exceptionnel</h3>
-                  <p class="text-sm text-gray-600">Le 20 mars 2025 (1 jour)</p>
-                  <p class="text-xs text-gray-500">Demandé le 10 mars 2025</p>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-4">
-              <span class="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                Refusé
-              </span>
-              <div class="flex space-x-2">
-                <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </button>
-                <button class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+         
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <!-- Date de début -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">
+               Date de début *
+             </label>
+             <input 
+               v-model="formData.dateDebut" 
+               type="date" 
+               required
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+             />
+           </div>
 
-        <!-- Demande 4 -->
-        <div class="p-6 hover:bg-gray-50 transition-colors">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-4">
-                <div class="p-2 bg-purple-100 rounded-lg">
-                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-base font-medium text-gray-900">Congé parental</h3>
-                  <p class="text-sm text-gray-600">Du 1 février au 28 février 2025 (20 jours)</p>
-                  <p class="text-xs text-gray-500">Demandé le 15 janvier 2025</p>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-4">
-              <span class="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                Approuvé
-              </span>
-              <div class="flex space-x-2">
-                <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+           <!-- Date de fin -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">
+               Date de fin *
+             </label>
+             <input 
+               v-model="formData.dateFin" 
+               type="date" 
+               required
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+             />
+           </div>
+         </div>
 
-    <!-- Pagination -->
-    <div class="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4">
-      <div class="text-sm text-gray-700">
-        Affichage de <span class="font-medium">1</span> à <span class="font-medium">4</span> sur <span class="font-medium">12</span> résultats
-      </div>
-      <div class="flex items-center space-x-2">
-        <button class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-          Précédent
-        </button>
-        <button class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg">1</button>
-        <button class="px-3 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">2</button>
-        <button class="px-3 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">3</button>
-        <button class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-          Suivant
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
+         <!-- Motif -->
+         <div>
+           <label class="block text-sm font-medium text-gray-700 mb-2">
+             Motif (optionnel)
+           </label>
+           <textarea 
+             v-model="formData.motif" 
+             rows="4" 
+             placeholder="Précisez le motif de votre demande..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+           ></textarea>
+         </div>
 
-<script>
-export default {
-  name: 'DemandesView'
-}
-</script> 
+         <!-- Récapitulatif simplifié -->
+         <div v-if="formData.dateDebut && formData.dateFin" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+           <div class="flex">
+             <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+             </svg>
+             <div class="ml-3">
+               <h3 class="text-sm font-medium text-blue-800">Récapitulatif de votre demande</h3>
+               <div class="mt-2 text-sm text-blue-700">
+                 <p v-if="formData.dateDebut && formData.dateFin">
+                   Du {{ formatDateFr(formData.dateDebut) }} au {{ formatDateFr(formData.dateFin) }}
+                 </p>
+                 <p v-else-if="formData.dateDebut">
+                   Le {{ formatDateFr(formData.dateDebut) }}
+                 </p>
+                 <p v-if="formData.duree === 'half_day_morning'">Demi-journée matin</p>
+                 <p v-else-if="formData.duree === 'half_day_afternoon'">Demi-journée après-midi</p>
+                 <p class="text-xs mt-1 text-blue-600">Le nombre de jours sera calculé automatiquement</p>
+               </div>
+             </div>
+           </div>
+         </div>
+       </form>
+
+       <template #footer>
+         <button 
+           type="button" 
+           @click="showModal = false"
+           class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+         >
+           Annuler
+         </button>
+         <button 
+           @click="submitDemande"
+           :disabled="!isFormValid || isSubmitting"
+           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+         >
+           <svg v-if="isSubmitting" class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+           </svg>
+           {{ isSubmitting ? 'Création...' : 'Soumettre la demande' }}
+         </button>
+       </template>
+     </BaseModal>
+   </div>
+ </template>
+
+<style scoped>
+/* Styles spécifiques si nécessaire */
+</style> 

@@ -13,13 +13,13 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../views/DashboardDrhView.vue'),
+      component: () => import('../views/DashboardView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/demandes',
       name: 'demandes',
-      component: () => import('../views/DemandesDrhView.vue'),
+      component: () => import('../views/DemandesView.vue'),
       meta: { requiresAuth: true }
     },
     {
@@ -55,13 +55,13 @@ const router = createRouter({
     {
       path: '/departements',
       name: 'departements',
-      component: () => import('../views/DepartementsDrhView.vue'),
+      component: () => import('../views/DepartementsView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/employes',
       name: 'employes',
-      component: () => import('../views/EmployesDrhView.vue'),
+      component: () => import('../views/EmployesView.vue'),
       meta: { requiresAuth: true }
     },
     {

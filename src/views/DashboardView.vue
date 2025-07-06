@@ -1,31 +1,59 @@
-<script>
-export default {
-  name: 'DashboardDrhView',
-  data() {
-    return {
-      stats: {
-        totalEmployees: 156,
-        activeLeaves: 23,
-        pendingRequests: 8,
-        departments: 12
-      },
-      recentActivity: [
-        { type: 'approval', message: 'Demande de Marie Dupont approuvée', time: 'il y a 1h', department: 'IT' },
-        { type: 'request', message: 'Nouvelle demande de Pierre Martin', time: 'il y a 2h', department: 'Marketing' },
-        { type: 'rejection', message: 'Demande de Sarah Dubois refusée', time: 'il y a 3h', department: 'RH' },
-        { type: 'info', message: 'Mise à jour du solde de congés', time: 'il y a 5h', department: 'Finance' }
-      ]
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useDemandesConges } from '@/composables/useDemandesConges'
+
+// Composables
+const { getDashboardStats, loading: demandesLoading } = useDemandesConges()
+
+// Données réactives
+const stats = ref({
+  totalEmployees: 0,
+  activeLeaves: 0,
+  pendingRequests: 0,
+  departments: 0
+})
+
+const recentActivity = ref([])
+
+const loadDashboardData = async () => {
+  try {
+    // Charger les statistiques du dashboard
+    const dashboardStats = await getDashboardStats()
+    if (dashboardStats) {
+      stats.value = {
+        totalEmployees: dashboardStats.total_employees || 0,
+        activeLeaves: dashboardStats.active_leaves || 0,
+        pendingRequests: dashboardStats.pending_requests || 0,
+        departments: dashboardStats.departments || 0
+      }
     }
+
+    // Charger les activités récentes si disponibles
+    if (dashboardStats?.recent_activity) {
+      recentActivity.value = dashboardStats.recent_activity
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
+    // Garder les valeurs par défaut en cas d'erreur
   }
 }
+
+// Charger les données au montage du composant
+onMounted(() => {
+  loadDashboardData()
+})
 </script>
 
 <template>
   <div class="space-y-6">
     <!-- Header -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h1 class="text-2xl font-bold text-gray-900">Dashboard DRH</h1>
-      <p class="text-gray-600 mt-2">Vue d'ensemble de la gestion des congés</p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p class="text-gray-600 mt-2">Vue d'ensemble de la gestion des congés</p>
+        </div>
+      </div>
     </div>
 
     <!-- Stats cards -->
@@ -89,25 +117,35 @@ export default {
 
     <!-- Quick actions -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Navigation rapide</h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <router-link to="/demandes" class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
           <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          <div class="text-left">
+            <p class="font-medium text-gray-900">Mes demandes</p>
+            <p class="text-sm text-gray-600">Créer et gérer</p>
+          </div>
+        </router-link>
+
+        <router-link to="/demandes-drh" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+          <svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
           </svg>
           <div class="text-left">
-            <p class="font-medium text-gray-900">Gérer les demandes</p>
+            <p class="font-medium text-gray-900">Validation</p>
             <p class="text-sm text-gray-600">Approuver ou refuser</p>
           </div>
         </router-link>
 
-        <router-link to="/employes" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-          <svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <router-link to="/employes" class="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+          <svg class="w-8 h-8 text-orange-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
           <div class="text-left">
-            <p class="font-medium text-gray-900">Gestion employés</p>
-            <p class="text-sm text-gray-600">Consulter les profils</p>
+            <p class="font-medium text-gray-900">Employés</p>
+            <p class="text-sm text-gray-600">Gestion des profils</p>
           </div>
         </router-link>
 
@@ -149,7 +187,7 @@ export default {
           </div>
         </div>
         
-        <router-link to="/demandes" class="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <router-link to="/demandes-drh" class="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium">
           Voir toutes les demandes →
         </router-link>
       </div>

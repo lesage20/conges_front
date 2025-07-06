@@ -184,7 +184,7 @@ apiLogs.getSuccessLogs()       // Logs de succès uniquement
 L'URL de base de l'API est configurée dans `useApi.js` :
 
 ```javascript
-const API_BASE_URL = 'http://localhost:8000/api'
+const API_BASE_URL = 'http://localhost:6500/api'
 ```
 
 ## Authentification
