@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { useDemandesConges } from '@/composables/useDemandesConges'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/auth'
 
 const { 
   loading, 
@@ -14,7 +14,7 @@ const {
   refuserDemande 
 } = useDemandesConges()
 
-const { user } = useAuth()
+const { user } = useAuthStore()
 
 const showModal = ref(false)
 const selectedFilter = ref('all')
@@ -165,9 +165,8 @@ const submitDemande = async () => {
     const demandeData = {
       type_conge: formData.value.type,
       date_debut: formData.value.dateDebut,
-      date_fin: formData.value.dateFin || formData.value.dateDebut,
-      motif: formData.value.motif || 'Demande de congé',
-      demandeur_id: user.value.id
+      date_fin: formData.value.dateFin,
+      motif: formData.value.motif || 'Demande de congé'
     }
     
     await createDemande(demandeData)
