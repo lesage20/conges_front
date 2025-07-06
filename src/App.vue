@@ -67,13 +67,6 @@ const navigationItems = computed(() => {
     })
   }
   
-  // Rapports - visible par tous
-  items.push({
-    path: '/rapports',
-    name: 'Rapports',
-    icon: BarChart3,
-    section: 'main'
-  })
   
   // Employés - visible par DRH uniquement
   if (authStore.user.role === 'drh') {
