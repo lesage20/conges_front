@@ -57,8 +57,8 @@ const navigationItems = computed(() => {
     })
   }
   
-  // Mon équipe - visible par chef de service uniquement
-  if (authStore.user.role === 'chef_service') {
+  // Mon équipe - visible par chef de service et DRH
+  if (authStore.user.role === 'chef_service' || authStore.user.role === 'drh') {
     items.push({
       path: '/monequipe',
       name: 'Mon équipe',

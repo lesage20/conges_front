@@ -88,9 +88,9 @@
         </div>
 
         <div class="space-y-3">
-          <div v-if="dept.manager" class="flex items-center">
-            <span class="text-sm text-gray-600">Manager:</span>
-            <span class="ml-2 text-sm font-medium text-gray-900">{{ dept.manager }}</span>
+          <div v-if="dept.chef_nom" class="flex items-center">
+            <span class="text-sm text-gray-600">Chef:</span>
+            <span class="ml-2 text-sm font-medium text-gray-900">{{ dept.chef_nom }}</span>
           </div>
           
           <div class="flex items-center justify-between">
@@ -122,10 +122,16 @@
           </div>
         </div>
 
-        <div class="mt-4 pt-4 border-t border-gray-200">
+        <div class="mt-4 pt-4 border-t border-gray-200 space-y-2">
+          <button 
+            @click="showAssignChefModal(dept)"
+            class="w-full text-center text-sm text-green-600 hover:text-green-700 font-medium py-2"
+          >
+            {{ dept.chef_nom ? 'Changer le chef' : 'Assigner un chef' }} 👤
+          </button>
           <button 
             @click="viewDetails(dept)"
-            class="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+            class="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2"
           >
             Voir les détails →
           </button>
@@ -197,6 +203,102 @@
         </div>
       </template>
     </BaseModal>
+
+    <!-- Modal pour assigner un chef -->
+    <BaseModal v-model="showAssignChefModalValue" title="Assigner un chef" close-on-overlay>
+      <template #header>
+        <h3 class="text-lg font-medium text-gray-900">
+          Assigner un chef au département "{{ selectedDepartement?.nom }}"
+        </h3>
+      </template>
+
+      <div class="space-y-4">
+        <div v-if="loadingManagers" class="flex justify-center items-center py-8">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600">Chargement des utilisateurs...</span>
+        </div>
+
+        <div v-else-if="!availableManagers.length" class="text-center py-8 text-gray-500">
+          Aucun utilisateur disponible pour être chef de département
+        </div>
+
+        <div v-else class="space-y-4">
+          <!-- Bouton pour s'auto-assigner -->
+          <div class="border-b border-gray-200 pb-4">
+            <button
+              @click="assignSelfAsChef"
+              :disabled="isAssigningChef"
+              class="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+              Je suis le chef de ce département
+            </button>
+          </div>
+
+          <!-- Liste des autres utilisateurs -->
+          <div class="max-h-64 overflow-y-auto">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Ou sélectionner un autre utilisateur
+            </label>
+            <div class="space-y-2">
+              <div
+                v-for="manager in availableManagers"
+                :key="manager.id"
+                class="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                :class="{ 
+                  'border-blue-500 bg-blue-50': selectedChef?.id === manager.id,
+                  'border-gray-200': selectedChef?.id !== manager.id
+                }"
+                @click="selectedChef = manager"
+              >
+                <input
+                  type="radio"
+                  :id="'manager-' + manager.id"
+                  :checked="selectedChef?.id === manager.id"
+                  class="mr-3 text-blue-600"
+                />
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900">
+                    {{ manager.nom }} {{ manager.prenom }}
+                  </div>
+                  <div class="text-sm text-gray-600">{{ manager.email }}</div>
+                  <div class="text-xs text-gray-500">{{ manager.role === 'chef_service' ? 'Chef de service' : manager.role === 'drh' ? 'DRH' : 'Employé' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showAssignChefModalValue = false"
+            type="button"
+            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            :disabled="isAssigningChef"
+          >
+            Annuler
+          </button>
+          <button
+            @click="assignChef"
+            type="button"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            :disabled="isAssigningChef || !selectedChef"
+          >
+            <span v-if="isAssigningChef" class="flex items-center">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Assignation...
+            </span>
+            <span v-else>
+              Assigner
+            </span>
+          </button>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -212,12 +314,13 @@ const {
   createDepartement, 
   updateDepartement, 
   deleteDepartement,
+  assignChefDepartement,
   getDepartementStats,
   loading, 
   error 
 } = useDepartements()
 
-const { getUsersByDepartement } = useUsers()
+const { getUsersByDepartement, getManagers, getUsers, getCurrentUser } = useUsers()
 
 // Données réactives
 const showModal = ref(false)
@@ -225,6 +328,14 @@ const editingDept = ref(null)
 const isSubmitting = ref(false)
 const departements = ref([])
 const isLoading = ref(false)
+
+// Données pour l'assignation de chef
+const showAssignChefModalValue = ref(false)
+const selectedDepartement = ref(null)
+const selectedChef = ref(null)
+const availableManagers = ref([])
+const loadingManagers = ref(false)
+const isAssigningChef = ref(false)
 
 const formData = ref({
   nom: '',
@@ -252,10 +363,21 @@ const loadDepartements = async () => {
               getDepartementStats(dept.id),
               getUsersByDepartement(dept.id)
             ])
+            
+            // Trouver le chef du département
+            let chef_nom = null
+            if (dept.chef_departement_id && employes) {
+              const chef = employes.find(emp => emp.id === dept.chef_departement_id)
+              if (chef) {
+                chef_nom = `${chef.nom} ${chef.prenom}`
+              }
+            }
+            
             return {
               ...dept,
               nb_employes: employes?.length || 0,
               nb_employes_presents: employes?.filter(emp => emp.is_active)?.length || 0,
+              chef_nom,
               ...stats
             }
           } catch (err) {
@@ -263,7 +385,8 @@ const loadDepartements = async () => {
             return {
               ...dept,
               nb_employes: 0,
-              nb_employes_presents: 0
+              nb_employes_presents: 0,
+              chef_nom: null
             }
           }
         })
@@ -336,6 +459,79 @@ const submitDepartement = async () => {
     console.error('Erreur lors de la soumission:', err)
   } finally {
     isSubmitting.value = false
+  }
+}
+
+const showAssignChefModal = (dept) => {
+  selectedDepartement.value = dept
+  showAssignChefModalValue.value = true
+  loadManagers()
+}
+
+const loadManagers = async () => {
+  loadingManagers.value = true
+  try {
+    const [usersResponse, currentUserResponse] = await Promise.all([
+      getUsers(),
+      getCurrentUser()
+    ])
+    
+    if (usersResponse) {
+      // Filtrer pour ne garder que les utilisateurs pouvant être chef de département
+      // et exclure l'utilisateur connecté (qui aura son propre bouton)
+      let managers = usersResponse.filter(user => 
+        (user.role === 'chef_service' || user.role === 'drh' || user.role === 'employe') &&
+        user.id !== currentUserResponse?.id
+      )
+      
+      availableManagers.value = managers
+    } else {
+      availableManagers.value = []
+    }
+  } catch (err) {
+    console.error('Erreur lors du chargement des managers:', err)
+    availableManagers.value = []
+  } finally {
+    loadingManagers.value = false
+  }
+}
+
+const assignChef = async () => {
+  if (!selectedChef.value || !selectedDepartement.value) return
+  
+  isAssigningChef.value = true
+  
+  try {
+    await assignChefDepartement(selectedDepartement.value.id, selectedChef.value.id)
+    await loadDepartements()
+    showAssignChefModalValue.value = false
+    selectedDepartement.value = null
+    selectedChef.value = null
+  } catch (err) {
+    console.error('Erreur lors de l\'assignation du chef:', err)
+  } finally {
+    isAssigningChef.value = false
+  }
+}
+
+const assignSelfAsChef = async () => {
+  if (!selectedDepartement.value) return
+  
+  isAssigningChef.value = true
+  
+  try {
+    const currentUser = await getCurrentUser()
+    if (currentUser) {
+      await assignChefDepartement(selectedDepartement.value.id, currentUser.id)
+      await loadDepartements()
+      showAssignChefModalValue.value = false
+      selectedDepartement.value = null
+      selectedChef.value = null
+    }
+  } catch (err) {
+    console.error('Erreur lors de l\'auto-assignation:', err)
+  } finally {
+    isAssigningChef.value = false
   }
 }
 
