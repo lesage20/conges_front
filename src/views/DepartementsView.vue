@@ -304,9 +304,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useToast } from 'vue-toastification'
 import BaseModal from '@/components/BaseModal.vue'
 import { useDepartements } from '@/composables/useDepartements'
 import { useUsers } from '@/composables/useUsers'
+
+// Toast notifications
+const toast = useToast()
 
 // Composables
 const { 
@@ -397,6 +401,7 @@ const loadDepartements = async () => {
     }
   } catch (err) {
     console.error('Erreur lors du chargement des départements:', err)
+    toast.error('Erreur lors du chargement des départements')
     departements.value = []
   } finally {
     isLoading.value = false
@@ -417,8 +422,10 @@ const confirmDelete = async (dept) => {
     try {
       await deleteDepartement(dept.id)
       await loadDepartements()
+      toast.success(`Département "${dept.nom}" supprimé avec succès`)
     } catch (err) {
       console.error('Erreur lors de la suppression:', err)
+      toast.error('Erreur lors de la suppression du département')
     }
   }
 }
@@ -442,9 +449,11 @@ const submitDepartement = async () => {
     if (editingDept.value) {
       // Modification
       await updateDepartement(editingDept.value.id, departementData)
+      toast.success(`Département "${departementData.nom}" modifié avec succès`)
     } else {
       // Création
       await createDepartement(departementData)
+      toast.success(`Département "${departementData.nom}" créé avec succès`)
     }
     
     // Recharger la liste des départements
@@ -457,6 +466,8 @@ const submitDepartement = async () => {
     
   } catch (err) {
     console.error('Erreur lors de la soumission:', err)
+    const action = editingDept.value ? 'modification' : 'création'
+    toast.error(`Erreur lors de la ${action} du département`)
   } finally {
     isSubmitting.value = false
   }
@@ -490,6 +501,7 @@ const loadManagers = async () => {
     }
   } catch (err) {
     console.error('Erreur lors du chargement des managers:', err)
+    toast.error('Erreur lors du chargement des utilisateurs')
     availableManagers.value = []
   } finally {
     loadingManagers.value = false
@@ -505,10 +517,12 @@ const assignChef = async () => {
     await assignChefDepartement(selectedDepartement.value.id, selectedChef.value.id)
     await loadDepartements()
     showAssignChefModalValue.value = false
+    toast.success(`${selectedChef.value.nom} ${selectedChef.value.prenom} est maintenant chef du département "${selectedDepartement.value.nom}"`)
     selectedDepartement.value = null
     selectedChef.value = null
   } catch (err) {
     console.error('Erreur lors de l\'assignation du chef:', err)
+    toast.error('Erreur lors de l\'assignation du chef de département')
   } finally {
     isAssigningChef.value = false
   }
@@ -524,12 +538,14 @@ const assignSelfAsChef = async () => {
     if (currentUser) {
       await assignChefDepartement(selectedDepartement.value.id, currentUser.id)
       await loadDepartements()
+      toast.success(`Vous êtes maintenant chef du département "${selectedDepartement.value.nom}"`)
       showAssignChefModalValue.value = false
       selectedDepartement.value = null
       selectedChef.value = null
     }
   } catch (err) {
     console.error('Erreur lors de l\'auto-assignation:', err)
+    toast.error('Erreur lors de l\'assignation comme chef de département')
   } finally {
     isAssigningChef.value = false
   }
