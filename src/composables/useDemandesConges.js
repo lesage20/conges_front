@@ -26,6 +26,11 @@ export function useDemandesConges() {
     return await api.get('/demandes-conges/en-attente')
   }
 
+  // Vérifier si l'utilisateur peut créer une nouvelle demande
+  const canCreateNewDemande = async () => {
+    return await api.get('/demandes-conges/can-create-new')
+  }
+
   // Créer une nouvelle demande de congé
   const createDemande = async (demandeData) => {
     return await api.post('/demandes-conges/', demandeData)
@@ -198,6 +203,7 @@ export function useDemandesConges() {
     getDemande,
     getMyDemandes,
     getDemandesEnAttente,
+    canCreateNewDemande,
     createDemande,
     updateDemande,
     cancelDemande,

@@ -4,24 +4,31 @@ import BaseModal from '@/components/BaseModal.vue'
 import ActionButton from '@/components/ActionButton.vue'
 import { useDemandesConges } from '@/composables/useDemandesConges'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from 'vue-toastification'
 
 const { 
   loading, 
   error,
   getDemandes, 
   getDemandesByUser,
-  createDemande, 
+  createDemande,
+  updateDemande, 
   approuverDemande, 
-  refuserDemande 
+  refuserDemande,
+  canCreateNewDemande 
 } = useDemandesConges()
 
 const { user } = useAuthStore()
+const toast = useToast()
 
 const showModal = ref(false)
 const selectedFilter = ref('all')
 const selectedStatus = ref('all')
 const demandes = ref([])
 const isSubmitting = ref(false)
+const canCreateNew = ref(true)
+const existingDemande = ref(null)
+const creationBlockReason = ref('')
 
 const formData = ref({
   type: 'conges_payes',
@@ -105,6 +112,20 @@ const loadDemandes = async () => {
   } catch (err) {
     console.error('Erreur lors du chargement des demandes:', err)
     demandes.value = []
+    toast.error('Erreur lors du chargement des demandes')
+  }
+}
+
+const checkCanCreateNew = async () => {
+  try {
+    const response = await canCreateNewDemande()
+    canCreateNew.value = response.can_create
+    existingDemande.value = response.existing_demande
+    creationBlockReason.value = response.reason
+  } catch (err) {
+    console.error('Erreur lors de la vérification de création:', err)
+    // En cas d'erreur, autoriser la création par défaut
+    canCreateNew.value = true
   }
 }
 
@@ -178,14 +199,32 @@ const handleActionCompleted = async ({ action, result, redirect }) => {
   }
   
   const message = successMessages[action] || 'Action effectuée avec succès'
-  console.log(message)
-  // TODO: Afficher une notification toast
+  toast.success(message)
 }
 
 // Gérer les erreurs depuis ActionButton
 const handleActionError = ({ action, error }) => {
   console.error(`Erreur lors de l'action ${action}:`, error)
-  // TODO: Afficher une notification d'erreur
+  
+  // Messages d'erreur personnalisés selon l'action
+  const errorMessages = {
+    'approuver': 'Erreur lors de l\'approbation de la demande',
+    'refuser': 'Erreur lors du refus de la demande',
+    'demander_annulation': 'Erreur lors de la demande d\'annulation',
+    'approuver_annulation': 'Erreur lors de l\'approbation de l\'annulation',
+    'refuser_annulation': 'Erreur lors du refus de l\'annulation',
+    'annuler': 'Erreur lors de l\'annulation de la demande',
+    'generer_attestation': 'Erreur lors de la génération de l\'attestation'
+  }
+  
+  const message = errorMessages[action] || 'Erreur lors de l\'action'
+  
+  // Afficher le message d'erreur détaillé si disponible
+  if (error.message) {
+    toast.error(`${message}: ${error.message}`)
+  } else {
+    toast.error(message)
+  }
 }
 
 const resetForm = () => {
@@ -196,6 +235,21 @@ const resetForm = () => {
     dateFin: '',
     motif: ''
   }
+}
+
+const modifierDemandeExistante = () => {
+  if (!existingDemande.value) return
+  
+  // Pré-remplir le formulaire avec les données de la demande existante
+  formData.value = {
+    type: existingDemande.value.type_conge || 'conges_payes',
+    dateDebut: existingDemande.value.date_debut,
+    dateFin: existingDemande.value.date_fin,
+    motif: existingDemande.value.motif || ''
+  }
+  
+  // Ouvrir le modal en mode modification
+  showModal.value = true
 }
 
 const submitDemande = async () => {
@@ -212,20 +266,38 @@ const submitDemande = async () => {
       motif: formData.value.motif || 'Demande de congé'
     }
     
-    await createDemande(demandeData)
+    // Si on modifie une demande existante
+    if (existingDemande.value && !canCreateNew.value) {
+      await updateDemande(existingDemande.value.id, demandeData)
+      toast.success('Demande de congé modifiée avec succès')
+      // Vérifier à nouveau si on peut créer une nouvelle demande
+      await checkCanCreateNew()
+    } else {
+      // Créer une nouvelle demande
+      await createDemande(demandeData)
+      toast.success('Demande de congé créée avec succès')
+      // Vérifier si on peut encore créer des demandes
+      await checkCanCreateNew()
+    }
     
-    // Recharger les demandes pour voir la nouvelle
+    // Recharger les demandes pour voir les changements
     await loadDemandes()
     
     // Fermer le modal et réinitialiser le formulaire
     showModal.value = false
     resetForm()
     
-    console.log('Demande créée avec succès')
-    
   } catch (err) {
-    console.error('Erreur lors de la création de la demande:', err)
-    // TODO: Afficher une notification d'erreur
+    console.error('Erreur lors de la soumission de la demande:', err)
+    
+    // Afficher un message d'erreur détaillé
+    let errorMessage = existingDemande.value && !canCreateNew.value 
+      ? 'Erreur lors de la modification de la demande'
+      : 'Erreur lors de la création de la demande'
+    if (err.message) {
+      errorMessage += `: ${err.message}`
+    }
+    toast.error(errorMessage)
   } finally {
     isSubmitting.value = false
   }
@@ -234,6 +306,7 @@ const submitDemande = async () => {
 // Charger les données au montage du composant
 onMounted(() => {
   loadDemandes()
+  checkCanCreateNew()
 })
 </script>
 
@@ -246,14 +319,35 @@ onMounted(() => {
           <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
           <p class="text-gray-600 mt-2">{{ pageDescription }}</p>
         </div>
+        <!-- Bouton pour nouvelle demande ou modifier l'existante -->
+        <div v-if="!canCreateNew && existingDemande" class="flex flex-col items-end">
+          <button 
+            @click="modifierDemandeExistante"
+            class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center mb-2"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Modifier ma demande en cours
+          </button>
+          <p class="text-sm text-gray-600 text-right">{{ creationBlockReason }}</p>
+        </div>
+        
         <button 
+          v-else
           @click="showModal = true"
-          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          :disabled="!canCreateNew"
+          :class="[
+            'px-4 py-2 rounded-lg transition-colors flex items-center',
+            canCreateNew 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+          ]"
         >
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
-          Nouvelle demande
+          {{ canCreateNew ? 'Nouvelle demande' : 'Demande en cours' }}
         </button>
       </div>
     </div>
@@ -433,10 +527,10 @@ onMounted(() => {
         </div>
      </div>
 
-     <!-- Modal de nouvelle demande -->
+     <!-- Modal de nouvelle demande ou modification -->
      <BaseModal 
        v-model="showModal" 
-       title="Nouvelle demande de congé"
+       :title="existingDemande && !canCreateNew ? 'Modifier ma demande de congé' : 'Nouvelle demande de congé'"
        @close="resetForm"
      >
        <form @submit.prevent="submitDemande" class="space-y-6">
@@ -544,7 +638,10 @@ onMounted(() => {
              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
            </svg>
-           {{ isSubmitting ? 'Création...' : 'Soumettre la demande' }}
+           {{ isSubmitting 
+             ? (existingDemande && !canCreateNew ? 'Modification...' : 'Création...') 
+             : (existingDemande && !canCreateNew ? 'Modifier la demande' : 'Soumettre la demande') 
+           }}
          </button>
        </template>
      </BaseModal>
