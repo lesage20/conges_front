@@ -1,4 +1,5 @@
 import { useApi } from './useApi'
+import { saveAs } from 'file-saver'
 
 export function useDemandesConges() {
   const api = useApi()
@@ -107,47 +108,37 @@ export function useDemandesConges() {
     return await api.get(`/demandes-conges/${id}/attestation`)
   }
 
-  // Télécharger l'attestation PDF
-  const telechargerAttestation = async (id) => {
+  // Télécharger l'attestation PDF avec file-saver
+  const telechargerAttestation = async (id, attestationUrl) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/demandes-conges/${id}/download-attestation`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/pdf'
-        }
-      })
+      console.log('Téléchargement attestation avec file-saver:', { id, attestationUrl })
+      
+      if (!attestationUrl) {
+        throw new Error('URL d\'attestation manquante')
+      }
+      
+      // Extraire le nom du fichier depuis l'URL
+      const urlParts = attestationUrl.split('/')
+      const filename = urlParts[urlParts.length - 1] || `attestation_${id}.pdf`
+      
+      console.log('Téléchargement du fichier:', filename)
+      
+      // Utiliser fetch pour récupérer le fichier puis file-saver pour le télécharger
+      const response = await fetch(attestationUrl)
       
       if (!response.ok) {
-        throw new Error('Erreur lors du téléchargement de l\'attestation')
+        throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`)
       }
       
-      // Récupérer le nom du fichier depuis l'en-tête
-      const contentDisposition = response.headers.get('Content-Disposition')
-      let filename = `attestation_${id}.pdf`
-      if (contentDisposition) {
-        const matches = contentDisposition.match(/filename="([^"]+)"/)
-        if (matches) {
-          filename = matches[1]
-        }
-      }
-      
-      // Créer un blob à partir de la réponse
+      // Convertir en blob
       const blob = await response.blob()
       
-      // Créer un lien de téléchargement temporaire
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
+      // Utiliser file-saver pour télécharger
+      saveAs(blob, filename)
       
-      // Nettoyer
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(link)
+      console.log('Téléchargement réussi avec file-saver')
+      return { success: true, url: attestationUrl, filename, method: 'file-saver' }
       
-      return { success: true, filename }
     } catch (error) {
       console.error('Erreur téléchargement attestation:', error)
       throw error
@@ -178,7 +169,7 @@ export function useDemandesConges() {
         return await genererAttestation(demandeId)
       
       case 'telecharger_attestation':
-        return await telechargerAttestation(demandeId)
+        return await telechargerAttestation(demandeId, data.attestationUrl)
       
       case 'modifier':
         // Pour la modification, on retourne juste l'ID pour navigation

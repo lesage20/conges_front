@@ -207,7 +207,8 @@ const getIcon = (iconName) => {
     'trash': 'svg',
     'undo': 'svg',
     'document': 'svg',
-    'eye': 'svg'
+    'eye': 'svg',
+    'download': 'svg'
   }
   return icons[iconName] || 'svg'
 }
@@ -237,15 +238,18 @@ const handleAction = async (action) => {
   
   // Actions directes
   try {
-    const result = await executeAction(action.action, props.demande.id)
+    let actionData = {}
+    
+    // Pour le téléchargement d'attestation, passer l'URL complète
+    if (action.action === 'telecharger_attestation') {
+      actionData.attestationUrl = props.demande.attestation_url
+    }
+    
+    const result = await executeAction(action.action, props.demande.id, actionData)
     
     if (result?.action === 'redirect') {
       // Gérer la navigation (modifier, détails)
       emit('action-completed', { action: action.action, result, redirect: result.url })
-    } else if (action.action === 'generer_attestation') {
-      // Gérer le téléchargement de l'attestation
-      downloadAttestation(result)
-      emit('action-completed', { action: action.action, result })
     } else {
       emit('action-completed', { action: action.action, result })
     }
@@ -287,15 +291,5 @@ const closeModal = () => {
   }
 }
 
-const downloadAttestation = (attestation) => {
-  const blob = new Blob([attestation.content], { type: 'text/html' })
-  const url = window.URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = attestation.filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.URL.revokeObjectURL(url)
-}
+
 </script> 
