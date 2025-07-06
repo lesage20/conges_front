@@ -75,11 +75,11 @@ export function useCalendrier() {
   }
 
   const getCongesForDay = (day) => {
-    if (!calendarData.value.congres) return []
+    if (!calendarData.value.conges) return []
     
     const targetDate = new Date(currentYear.value, currentMonth.value - 1, day)
     
-    return calendarData.value.congres.filter(conge => {
+    return calendarData.value.conges.filter(conge => {
       const dateDebut = new Date(conge.date_debut)
       const dateFin = new Date(conge.date_fin)
       

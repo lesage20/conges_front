@@ -141,12 +141,12 @@ const joursSemaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
             :key="index"
             :class="[
               'p-2 h-32 text-sm cursor-pointer transition-colors rounded-lg border overflow-hidden',
+              cell.isToday 
+                ? 'bg-blue-100 border-2 border-blue-400' 
+                : '',
               cell.isCurrentMonth 
                 ? 'bg-white hover:bg-gray-50 border-gray-200' 
                 : 'bg-gray-50 border-gray-100',
-              cell.isToday 
-                ? 'bg-blue-50 border-2 border-blue-400' 
-                : ''
             ]"
           >
             <!-- Numéro du jour -->
