@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
+import ActionButton from '@/components/ActionButton.vue'
 import { useDemandesConges } from '@/composables/useDemandesConges'
 import { useAuthStore } from '@/stores/auth'
 
@@ -38,8 +39,8 @@ const filteredDemandes = computed(() => {
     // Adapter les statuts selon l'API backend
     const statusMap = {
       'En attente': 'en_attente',
-      'Approuvée': 'approuve',
-      'Refusée': 'refuse'
+      'Approuvée': 'approuvee',
+      'Refusée': 'refusee'
     }
     const apiStatus = statusMap[selectedStatus.value]
     filtered = filtered.filter(d => d.statut === apiStatus)
@@ -53,29 +54,54 @@ const pendingCount = computed(() => {
 })
 
 const approvedCount = computed(() => {
-  return demandes.value.filter(d => d.statut === 'approuve').length
+  return demandes.value.filter(d => d.statut === 'approuvee').length
 })
 
 const rejectedCount = computed(() => {
-  return demandes.value.filter(d => d.statut === 'refuse').length
+  return demandes.value.filter(d => d.statut === 'refusee').length
 })
 
 const isFormValid = computed(() => {
   return formData.value.type && formData.value.dateDebut && formData.value.dateFin
 })
 
+// Titre et description dynamiques selon le rôle
+const pageTitle = computed(() => {
+  if (!user.value) return 'Demandes de congés'
+  
+  switch (user.value.role) {
+    case 'employe':
+      return 'Mes demandes de congés'
+    case 'chef_service':
+      return 'Demandes de congés - Mon équipe'
+    case 'drh':
+      return 'Demandes de congés - Toutes les demandes'
+    default:
+      return 'Demandes de congés'
+  }
+})
+
+const pageDescription = computed(() => {
+  if (!user.value) return 'Gérez les demandes de congés'
+  
+  switch (user.value.role) {
+    case 'employe':
+      return 'Gérez vos demandes de congés payés'
+    case 'chef_service':
+      return 'Gérez les demandes de congés de votre équipe'
+    case 'drh':
+      return 'Supervision de toutes les demandes de congés'
+    default:
+      return 'Gérez les demandes de congés'
+  }
+})
+
 // Methods
 const loadDemandes = async () => {
   try {
-    // Récupérer les demandes de l'utilisateur connecté
-    if (user.value) {
-      const response = await getDemandesByUser(user.value.id)
-      demandes.value = response || []
-    } else {
-      // Si pas d'utilisateur connecté, récupérer toutes les demandes (pour DRH)
-      const response = await getDemandes()
-      demandes.value = response || []
-    }
+    // Utiliser la route principale qui gère automatiquement les permissions selon le rôle
+    const response = await getDemandes()
+    demandes.value = response || []
   } catch (err) {
     console.error('Erreur lors du chargement des demandes:', err)
     demandes.value = []
@@ -85,8 +111,11 @@ const loadDemandes = async () => {
 const getStatusColor = (statut) => {
   switch (statut) {
     case 'en_attente': return 'bg-orange-100 text-orange-800'
-    case 'approuve': return 'bg-green-100 text-green-800'
-    case 'refuse': return 'bg-red-100 text-red-800'
+    case 'approuvee': return 'bg-green-100 text-green-800'
+    case 'refusee': return 'bg-red-100 text-red-800'
+    case 'annulee': return 'bg-gray-100 text-gray-800'
+    case 'demande_annulation': return 'bg-yellow-100 text-yellow-800'
+    case 'annulation_refusee': return 'bg-blue-100 text-blue-800'
     default: return 'bg-gray-100 text-gray-800'
   }
 }
@@ -94,8 +123,11 @@ const getStatusColor = (statut) => {
 const getStatusLabel = (statut) => {
   switch (statut) {
     case 'en_attente': return 'En attente'
-    case 'approuve': return 'Approuvée'
-    case 'refuse': return 'Refusée'
+    case 'approuvee': return 'Approuvée'
+    case 'refusee': return 'Refusée'
+    case 'annulee': return 'Annulée'
+    case 'demande_annulation': return 'Demande d\'annulation'
+    case 'annulation_refusee': return 'Annulation refusée'
     default: return statut
   }
 }
@@ -120,29 +152,40 @@ const formatDateFr = (dateStr) => {
   })
 }
 
-const approveDemande = async (demande) => {
-  try {
-    await approuverDemande(demande.id)
-    // Recharger les demandes après approbation
-    await loadDemandes()
-  } catch (err) {
-    console.error('Erreur lors de l\'approbation:', err)
+// Gérer les actions complétées depuis ActionButton
+const handleActionCompleted = async ({ action, result, redirect }) => {
+  console.log(`Action ${action} complétée:`, result)
+  
+  // Si c'est une redirection (modifier, détails)
+  if (redirect) {
+    // TODO: Implémenter la navigation
+    console.log('Naviguer vers:', redirect)
+    return
   }
+  
+  // Pour les autres actions, recharger les demandes
+  await loadDemandes()
+  
+  // Afficher un message de succès selon l'action
+  const successMessages = {
+    'approuver': 'Demande approuvée avec succès',
+    'refuser': 'Demande refusée avec succès', 
+    'demander_annulation': 'Demande d\'annulation envoyée avec succès',
+    'approuver_annulation': 'Annulation approuvée avec succès',
+    'refuser_annulation': 'Annulation refusée avec succès',
+    'annuler': 'Demande annulée avec succès',
+    'generer_attestation': 'Attestation générée et téléchargée avec succès'
+  }
+  
+  const message = successMessages[action] || 'Action effectuée avec succès'
+  console.log(message)
+  // TODO: Afficher une notification toast
 }
 
-const rejectDemande = async (demande) => {
-  try {
-    await refuserDemande(demande.id)
-    // Recharger les demandes après refus
-    await loadDemandes()
-  } catch (err) {
-    console.error('Erreur lors du refus:', err)
-  }
-}
-
-const viewDetails = (demande) => {
-  // Ouvrir un modal ou naviguer vers une page de détails
-  console.log('Voir détails:', demande)
+// Gérer les erreurs depuis ActionButton
+const handleActionError = ({ action, error }) => {
+  console.error(`Erreur lors de l'action ${action}:`, error)
+  // TODO: Afficher une notification d'erreur
 }
 
 const resetForm = () => {
@@ -200,8 +243,8 @@ onMounted(() => {
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Mes demandes de congés</h1>
-          <p class="text-gray-600 mt-2">Gérez vos demandes de congés payés</p>
+          <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
+          <p class="text-gray-600 mt-2">{{ pageDescription }}</p>
         </div>
         <button 
           @click="showModal = true"
@@ -337,8 +380,10 @@ onMounted(() => {
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employé</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th> -->
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Période</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jours compté</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jours total</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -348,13 +393,13 @@ onMounted(() => {
                <td class="px-6 py-4 whitespace-nowrap">
                  <div>
                    <div class="text-sm font-medium text-gray-900">{{ demande.user?.nom || 'Utilisateur' }} {{ demande.user?.prenom || '' }}</div>
-                   <div class="text-sm text-gray-500">{{ demande.user?.departement?.nom || 'Non assigné' }}</div>
+                   <div class="text-sm text-gray-500">{{ demande.user?.departement || 'Non assigné' }}</div>
                  </div>
                </td>
-               <td class="px-6 py-4 whitespace-nowrap">
+               <!-- <td class="px-6 py-4 whitespace-nowrap">
                  <div class="text-sm text-gray-900">Congés payés</div>
                  <div class="text-sm text-gray-500">{{ demande.motif || 'Aucun motif' }}</div>
-               </td>
+               </td> -->
                <td class="px-6 py-4 whitespace-nowrap">
                  <div class="text-sm text-gray-900">
                    {{ formatDate(demande.date_debut) }} - {{ formatDate(demande.date_fin) }}
@@ -364,36 +409,23 @@ onMounted(() => {
                  </div>
                </td>
                <td class="px-6 py-4 whitespace-nowrap">
-                 <span class="text-sm font-medium text-gray-900">{{ demande.nb_jours || 0 }} jour{{ (demande.nb_jours || 0) > 1 ? 's' : '' }}</span>
+                 <span class="text-sm font-medium text-gray-900">{{ demande.working_time  }} </span>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span class="text-sm font-medium text-gray-900">{{ demande.real_time  }} </span>
                </td>
                <td class="px-6 py-4 whitespace-nowrap">
                  <span :class="['inline-flex px-2 py-1 text-xs font-semibold rounded-full', getStatusColor(demande.statut)]">
                    {{ getStatusLabel(demande.statut) }}
                  </span>
                </td>
-               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                 <button 
-                   v-if="demande.statut === 'en_attente'"
-                   @click="approveDemande(demande)"
-                   class="text-green-600 hover:text-green-900 px-2 py-1 bg-green-50 rounded hover:bg-green-100 transition-colors"
-                   :disabled="loading"
-                 >
-                   Approuver
-                 </button>
-                 <button 
-                   v-if="demande.statut === 'en_attente'"
-                   @click="rejectDemande(demande)"
-                   class="text-red-600 hover:text-red-900 px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition-colors"
-                   :disabled="loading"
-                 >
-                   Refuser
-                 </button>
-                 <button 
-                   @click="viewDetails(demande)"
-                   class="text-blue-600 hover:text-blue-900 px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
-                 >
-                   Détails
-                 </button>
+               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                 <ActionButton 
+                   :actions="demande.actions || []"
+                   :demande="demande"
+                   @action-completed="handleActionCompleted"
+                   @action-error="handleActionError"
+                 />
                </td>
                           </tr>
            </tbody>
