@@ -1,5 +1,5 @@
 // Export principal des composables API
-export { useApi, useApiLogs } from './useApi'
+export { useApi } from './useApi'
 
 // Export du composable d'authentification
 export { useAuth } from './useAuth'
@@ -8,6 +8,8 @@ export { useAuth } from './useAuth'
 export { useUsers } from './useUsers'
 export { useDemandesConges } from './useDemandesConges'
 export { useDepartements } from './useDepartements'
+export { usePageTransitions } from './usePageTransitions'
+export { useCalendrier } from './useCalendrier'
 
 // Configuration par défaut de l'API
 export const API_CONFIG = {
