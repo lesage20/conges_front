@@ -42,6 +42,8 @@
     </button>
   </div>
 
+
+
   <!-- Modal pour les actions nécessitant une confirmation -->
   <BaseModal 
     v-model="showModal" 
@@ -116,9 +118,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">Confirmer l'annulation</h3>
+            <h3 class="text-sm font-medium text-red-800">Confirmer la suppression</h3>
             <p class="mt-2 text-sm text-red-700">
-              Cette action annulera définitivement votre demande de congé. Cette action ne peut pas être annulée.
+              Cette action supprimera définitivement votre demande de congé de la base de données. Cette action ne peut pas être annulée.
             </p>
           </div>
         </div>
@@ -195,7 +197,7 @@ const modalTitle = computed(() => {
     'refuser': 'Refuser la demande',
     'approuver_annulation': 'Approuver l\'annulation',
     'refuser_annulation': 'Refuser l\'annulation',
-    'annuler': 'Annuler la demande'
+    'annuler': 'Supprimer la demande'
   }
   
   return titleMap[currentAction.value.action] || currentAction.value.label
@@ -210,6 +212,8 @@ const canConfirm = computed(() => {
   
   return true
 })
+
+
 
 // Méthodes
 const getButtonClass = (color) => {

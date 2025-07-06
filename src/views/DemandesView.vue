@@ -154,13 +154,7 @@ const getStatusLabel = (statut) => {
 }
 
 const formatDate = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  return new Date(dateString).toLocaleDateString('fr-FR')
 }
 
 const formatDateFr = (dateStr) => {
@@ -172,6 +166,8 @@ const formatDateFr = (dateStr) => {
     year: 'numeric'
   })
 }
+
+
 
 // Gérer les actions complétées depuis ActionButton
 const handleActionCompleted = async ({ action, result, redirect }) => {
@@ -194,7 +190,7 @@ const handleActionCompleted = async ({ action, result, redirect }) => {
     'demander_annulation': 'Demande d\'annulation envoyée avec succès',
     'approuver_annulation': 'Annulation approuvée avec succès',
     'refuser_annulation': 'Annulation refusée avec succès',
-    'annuler': 'Demande annulée avec succès',
+          'annuler': 'Demande supprimée avec succès',
     'generer_attestation': 'Attestation générée et téléchargée avec succès'
   }
   
@@ -213,7 +209,7 @@ const handleActionError = ({ action, error }) => {
     'demander_annulation': 'Erreur lors de la demande d\'annulation',
     'approuver_annulation': 'Erreur lors de l\'approbation de l\'annulation',
     'refuser_annulation': 'Erreur lors du refus de l\'annulation',
-    'annuler': 'Erreur lors de l\'annulation de la demande',
+    'annuler': 'Erreur lors de la suppression de la demande',
     'generer_attestation': 'Erreur lors de la génération de l\'attestation'
   }
   
@@ -426,10 +422,16 @@ onMounted(() => {
      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
        <div class="px-6 py-4 border-b border-gray-200">
          <div class="flex items-center justify-between">
-           <h3 class="text-lg font-semibold text-gray-900">
-             Liste des demandes 
-             <span class="text-sm font-normal text-gray-600">({{ filteredDemandes.length }})</span>
-           </h3>
+           <div>
+             <h3 class="text-lg font-semibold text-gray-900">
+               Liste des demandes 
+               <span class="text-sm font-normal text-gray-600">({{ filteredDemandes.length }})</span>
+             </h3>
+             <p class="text-xs text-gray-500 mt-1">
+               💡 Demandes en attente : peuvent être <strong>supprimées</strong> définitivement • 
+               Demandes approuvées : peuvent faire l'objet d'une <strong>demande d'annulation</strong>
+             </p>
+           </div>
            <div v-if="loading" class="flex items-center text-blue-600">
              <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

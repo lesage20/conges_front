@@ -180,17 +180,20 @@ export function useDemandesConges() {
         // Pour la modification, on retourne juste l'ID pour navigation
         return { action: 'redirect', url: `/demandes/${demandeId}/modifier` }
       
-      case 'annuler':
-        return await cancelDemande(demandeId)
+              case 'annuler':
+          return await cancelDemande(demandeId)
       
       case 'details':
         // Pour les détails, on retourne juste l'ID pour navigation  
         return { action: 'redirect', url: `/demandes/${demandeId}` }
       
+
       default:
         throw new Error(`Action non reconnue: ${action}`)
     }
   }
+
+
 
   return {
     // États réactifs du composable useApi
@@ -218,8 +221,8 @@ export function useDemandesConges() {
     traiterAnnulation,
     approuverAnnulation,
     refuserAnnulation,
-    genererAttestation,
-    telechargerAttestation,
-    executeAction
+          genererAttestation,
+      telechargerAttestation,
+      executeAction
   }
 } 
