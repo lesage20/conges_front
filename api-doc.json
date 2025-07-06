@@ -1337,7 +1337,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/DemandeCongeRead"
+                                        "$ref": "#/components/schemas/DemandeCongeWithActions"
                                     },
                                     "title": "Response Get Demandes Conges Api Demandes Conges  Get"
                                 }
@@ -1699,6 +1699,171 @@
                 ]
             }
         },
+        "/api/demandes-conges/{demande_id}/demander-annulation": {
+            "post": {
+                "tags": [
+                    "demandes-conges"
+                ],
+                "summary": "Demander Annulation",
+                "description": "Demande l'annulation d'une demande de congé approuvée",
+                "operationId": "demander_annulation_api_demandes_conges__demande_id__demander_annulation_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "demande_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Demande Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DemandeAnnulation"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DemandeCongeRead"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/demandes-conges/{demande_id}/traiter-annulation": {
+            "post": {
+                "tags": [
+                    "demandes-conges"
+                ],
+                "summary": "Traiter Annulation",
+                "description": "Traite une demande d'annulation (DRH uniquement)",
+                "operationId": "traiter_annulation_api_demandes_conges__demande_id__traiter_annulation_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "demande_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Demande Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DemandeCongeValidation"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DemandeCongeRead"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/demandes-conges/{demande_id}/attestation": {
+            "get": {
+                "tags": [
+                    "demandes-conges"
+                ],
+                "summary": "Generer Attestation",
+                "description": "Génère une attestation de congé (DRH uniquement)",
+                "operationId": "generer_attestation_api_demandes_conges__demande_id__attestation_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "demande_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Demande Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/": {
             "get": {
                 "summary": "Root",
@@ -1736,6 +1901,46 @@
     },
     "components": {
         "schemas": {
+            "ActionDynamique": {
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "title": "Action"
+                    },
+                    "label": {
+                        "type": "string",
+                        "title": "Label"
+                    },
+                    "icon": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Icon"
+                    },
+                    "color": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Color"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "action",
+                    "label"
+                ],
+                "title": "ActionDynamique"
+            },
             "BearerResponse": {
                 "properties": {
                     "access_token": {
@@ -1931,6 +2136,19 @@
                 ],
                 "title": "Body_verify_verify_api_auth_verify_post"
             },
+            "DemandeAnnulation": {
+                "properties": {
+                    "motif_annulation": {
+                        "type": "string",
+                        "title": "Motif Annulation"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "motif_annulation"
+                ],
+                "title": "DemandeAnnulation"
+            },
             "DemandeCongeCreate": {
                 "properties": {
                     "type_conge": {
@@ -1945,10 +2163,6 @@
                         "type": "string",
                         "format": "date",
                         "title": "Date Fin"
-                    },
-                    "nombre_jours": {
-                        "type": "string",
-                        "title": "Nombre Jours"
                     },
                     "motif": {
                         "anyOf": [
@@ -1966,13 +2180,22 @@
                 "required": [
                     "type_conge",
                     "date_debut",
-                    "date_fin",
-                    "nombre_jours"
+                    "date_fin"
                 ],
                 "title": "DemandeCongeCreate"
             },
             "DemandeCongeRead": {
                 "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "demandeur_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Demandeur Id"
+                    },
                     "type_conge": {
                         "$ref": "#/components/schemas/TypeCongeEnum"
                     },
@@ -1990,6 +2213,14 @@
                         "type": "string",
                         "title": "Nombre Jours"
                     },
+                    "working_time": {
+                        "type": "integer",
+                        "title": "Working Time"
+                    },
+                    "real_time": {
+                        "type": "integer",
+                        "title": "Real Time"
+                    },
                     "motif": {
                         "anyOf": [
                             {
@@ -2000,16 +2231,6 @@
                             }
                         ],
                         "title": "Motif"
-                    },
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "title": "Id"
-                    },
-                    "demandeur_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "title": "Demandeur Id"
                     },
                     "statut": {
                         "$ref": "#/components/schemas/StatutDemandeEnum"
@@ -2054,6 +2275,74 @@
                         ],
                         "title": "Valideur Id"
                     },
+                    "demande_annulation": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Demande Annulation"
+                    },
+                    "motif_annulation": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Motif Annulation"
+                    },
+                    "date_demande_annulation": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Date Demande Annulation"
+                    },
+                    "attestation_pdf": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Attestation Pdf"
+                    },
+                    "attestation_url": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Attestation Url"
+                    },
+                    "date_generation_attestation": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Date Generation Attestation"
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -2063,16 +2352,38 @@
                         "type": "string",
                         "format": "date-time",
                         "title": "Updated At"
+                    },
+                    "user": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/UserBasicInfo"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "valideur": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/UserBasicInfo"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "type": "object",
                 "required": [
+                    "id",
+                    "demandeur_id",
                     "type_conge",
                     "date_debut",
                     "date_fin",
                     "nombre_jours",
-                    "id",
-                    "demandeur_id",
+                    "working_time",
+                    "real_time",
                     "statut",
                     "date_demande",
                     "created_at",
@@ -2126,6 +2437,28 @@
                             }
                         ],
                         "title": "Nombre Jours"
+                    },
+                    "working_time": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Working Time"
+                    },
+                    "real_time": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Real Time"
                     },
                     "motif": {
                         "anyOf": [
@@ -2185,6 +2518,221 @@
                     "statut"
                 ],
                 "title": "DemandeCongeValidation"
+            },
+            "DemandeCongeWithActions": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "demandeur_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Demandeur Id"
+                    },
+                    "type_conge": {
+                        "$ref": "#/components/schemas/TypeCongeEnum"
+                    },
+                    "date_debut": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Date Debut"
+                    },
+                    "date_fin": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Date Fin"
+                    },
+                    "nombre_jours": {
+                        "type": "string",
+                        "title": "Nombre Jours"
+                    },
+                    "working_time": {
+                        "type": "integer",
+                        "title": "Working Time"
+                    },
+                    "real_time": {
+                        "type": "integer",
+                        "title": "Real Time"
+                    },
+                    "motif": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Motif"
+                    },
+                    "statut": {
+                        "$ref": "#/components/schemas/StatutDemandeEnum"
+                    },
+                    "date_demande": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Date Demande"
+                    },
+                    "date_reponse": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Date Reponse"
+                    },
+                    "commentaire_validation": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Commentaire Validation"
+                    },
+                    "valideur_id": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Valideur Id"
+                    },
+                    "demande_annulation": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Demande Annulation"
+                    },
+                    "motif_annulation": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Motif Annulation"
+                    },
+                    "date_demande_annulation": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Date Demande Annulation"
+                    },
+                    "attestation_pdf": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Attestation Pdf"
+                    },
+                    "attestation_url": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Attestation Url"
+                    },
+                    "date_generation_attestation": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Date Generation Attestation"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Created At"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Updated At"
+                    },
+                    "user": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/UserBasicInfo"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "valideur": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/UserBasicInfo"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "actions": {
+                        "items": {
+                            "$ref": "#/components/schemas/ActionDynamique"
+                        },
+                        "type": "array",
+                        "title": "Actions",
+                        "default": []
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "demandeur_id",
+                    "type_conge",
+                    "date_debut",
+                    "date_fin",
+                    "nombre_jours",
+                    "working_time",
+                    "real_time",
+                    "statut",
+                    "date_demande",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "DemandeCongeWithActions"
             },
             "DepartementCreate": {
                 "properties": {
@@ -2410,7 +2958,9 @@
                     "en_attente",
                     "approuvee",
                     "refusee",
-                    "annulee"
+                    "annulee",
+                    "demande_annulation",
+                    "annulation_refusee"
                 ],
                 "title": "StatutDemandeEnum"
             },
@@ -2426,6 +2976,57 @@
                     "autre"
                 ],
                 "title": "TypeCongeEnum"
+            },
+            "UserBasicInfo": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "nom": {
+                        "type": "string",
+                        "title": "Nom"
+                    },
+                    "prenom": {
+                        "type": "string",
+                        "title": "Prenom"
+                    },
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    },
+                    "role": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Role"
+                    },
+                    "departement": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Departement"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "nom",
+                    "prenom",
+                    "email"
+                ],
+                "title": "UserBasicInfo"
             },
             "UserCreate": {
                 "properties": {

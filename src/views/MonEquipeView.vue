@@ -1,39 +1,68 @@
-<script>
-export default {
-  name: 'MonEquipeView',
-  data() {
-    return {
-      equipe: [
-        { id: 1, nom: 'Pierre Martin', poste: 'Développeur Senior', soldeConges: 18, status: 'Présent', derniereAbsence: '2025-02-15' },
-        { id: 2, nom: 'Marie Dubois', poste: 'Développeuse Frontend', soldeConges: 22, status: 'En congé', derniereAbsence: '2025-03-01' },
-        { id: 3, nom: 'Jean Leroy', poste: 'DevOps', soldeConges: 20, status: 'Présent', derniereAbsence: '2025-01-20' },
-        { id: 4, nom: 'Sarah Durand', poste: 'UI/UX Designer', soldeConges: 25, status: 'Présent', derniereAbsence: '2025-02-28' }
-      ],
-      demandesEnAttente: [
-        { id: 1, employe: 'Pierre Martin', type: 'Congés payés', periode: '15-20 Mars', jours: 4, raison: 'Vacances' },
-        { id: 2, employe: 'Sarah Durand', type: 'RTT', periode: '22 Mars', jours: 1, raison: 'Rendez-vous médical' }
-      ]
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { useUsers } from '@/composables/useUsers'
+import { useAuthStore } from '@/stores/auth'
+
+// Composables
+const { getMyTeam, loading: usersLoading } = useUsers()
+const authStore = useAuthStore()
+
+// Données réactives
+const equipe = ref([])
+const demandesEnAttente = ref([])
+
+// Computed properties
+const membresEquipe = computed(() => {
+  // Filtrer seulement les employés (pas les chefs de service)
+  return equipe.value.filter(user => user.role === 'employe')
+})
+
+const membresPresents = computed(() => {
+  return membresEquipe.value.filter(membre => membre.status === 'Présent')
+})
+
+const membresEnConge = computed(() => {
+  return membresEquipe.value.filter(membre => membre.status === 'En congé')
+})
+
+const loadEquipe = async () => {
+  try {
+    const response = await getMyTeam()
+    if (response) {
+      // Ajouter le status pour chaque membre (temporaire - à récupérer de l'API plus tard)
+      equipe.value = response.map(user => ({
+        ...user,
+        status: 'Présent', // À implémenter avec les vraies données
+        derniereAbsence: '2025-01-01' // À implémenter avec les vraies données
+      }))
     }
-  },
-  methods: {
-    getStatusColor(status) {
-      switch (status) {
-        case 'Présent': return 'bg-green-100 text-green-800'
-        case 'En congé': return 'bg-orange-100 text-orange-800'
-        case 'Absent': return 'bg-red-100 text-red-800'
-        default: return 'bg-gray-100 text-gray-800'
-      }
-    },
-    approuverDemande(demande) {
-      // Logique d'approbation
-      console.log('Demande approuvée:', demande)
-    },
-    refuserDemande(demande) {
-      // Logique de refus
-      console.log('Demande refusée:', demande)
-    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'équipe:', error)
   }
 }
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Présent': return 'bg-green-100 text-green-800'
+    case 'En congé': return 'bg-orange-100 text-orange-800'
+    case 'Absent': return 'bg-red-100 text-red-800'
+    default: return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'Présent': return '✅'
+    case 'En congé': return '🏖️'
+    case 'Absent': return '❌'
+    default: return '❓'
+  }
+}
+
+// Charger les données au montage du composant
+onMounted(() => {
+  loadEquipe()
+})
 </script>
 
 <template>
@@ -41,7 +70,7 @@ export default {
     <!-- Header -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <h1 class="text-2xl font-bold text-gray-900">Mon équipe</h1>
-      <p class="text-gray-600 mt-2">Gestion des congés de votre équipe</p>
+      <p class="text-gray-600 mt-2">Gestion des membres de votre équipe - {{ authStore.user?.departement?.nom || 'Département' }}</p>
     </div>
 
     <!-- Stats de l'équipe -->
@@ -55,7 +84,7 @@ export default {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-600">Total équipe</p>
-            <p class="text-2xl font-bold text-gray-900">{{ equipe.length }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ membresEquipe.length }}</p>
           </div>
         </div>
       </div>
@@ -69,7 +98,7 @@ export default {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-600">Présents</p>
-            <p class="text-2xl font-bold text-gray-900">{{ equipe.filter(e => e.status === 'Présent').length }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ membresPresents.length }}</p>
           </div>
         </div>
       </div>
@@ -83,7 +112,7 @@ export default {
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-600">En congé</p>
-            <p class="text-2xl font-bold text-gray-900">{{ equipe.filter(e => e.status === 'En congé').length }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ membresEnConge.length }}</p>
           </div>
         </div>
       </div>
@@ -96,45 +125,54 @@ export default {
             </svg>
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600">Demandes en attente</p>
-            <p class="text-2xl font-bold text-gray-900">{{ demandesEnAttente.length }}</p>
+            <p class="text-sm font-medium text-gray-600">Solde total</p>
+            <p class="text-2xl font-bold text-gray-900">{{ membresEquipe.reduce((total, membre) => total + (membre.solde_conges || 0), 0) }}</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Demandes en attente -->
+    <!-- Informations rapides -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Demandes en attente d'approbation</h3>
-      <div class="space-y-4">
-        <div 
-          v-for="demande in demandesEnAttente" 
-          :key="demande.id"
-          class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-        >
-          <div class="flex-1">
-            <div class="flex items-center">
-              <h4 class="font-medium text-gray-900">{{ demande.employe }}</h4>
-              <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{{ demande.type }}</span>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Aperçu rapide</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Employés avec le plus de congés -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-3">Plus de congés disponibles</h4>
+          <div class="space-y-2">
+            <div 
+              v-for="membre in membresEquipe.slice().sort((a, b) => (b.solde_conges || 0) - (a.solde_conges || 0)).slice(0, 3)" 
+              :key="membre.id"
+              class="flex items-center justify-between p-3 bg-green-50 rounded-lg"
+            >
+              <div>
+                <p class="font-medium text-gray-900">{{ membre.prenom }} {{ membre.nom }}</p>
+                <p class="text-sm text-gray-600">{{ membre.email }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-semibold text-green-700">{{ membre.solde_conges || 0 }} jours</p>
+              </div>
             </div>
-            <p class="text-sm text-gray-600 mt-1">
-              {{ demande.periode }} • {{ demande.jours }} jour{{ demande.jours > 1 ? 's' : '' }}
-            </p>
-            <p class="text-sm text-gray-500">{{ demande.raison }}</p>
           </div>
-          <div class="flex space-x-2">
-            <button 
-              @click="approuverDemande(demande)"
-              class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+        </div>
+
+        <!-- Employés avec le moins de congés -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-3">Moins de congés disponibles</h4>
+          <div class="space-y-2">
+            <div 
+              v-for="membre in membresEquipe.slice().sort((a, b) => (a.solde_conges || 0) - (b.solde_conges || 0)).slice(0, 3)" 
+              :key="membre.id"
+              class="flex items-center justify-between p-3 bg-orange-50 rounded-lg"
             >
-              Approuver
-            </button>
-            <button 
-              @click="refuserDemande(demande)"
-              class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-            >
-              Refuser
-            </button>
+              <div>
+                <p class="font-medium text-gray-900">{{ membre.prenom }} {{ membre.nom }}</p>
+                <p class="text-sm text-gray-600">{{ membre.email }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-semibold text-orange-700">{{ membre.solde_conges || 0 }} jours</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -143,38 +181,73 @@ export default {
     <!-- Liste de l'équipe -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900">Membres de l'équipe</h3>
+        <h3 class="text-lg font-semibold text-gray-900">Membres de l'équipe ({{ membresEquipe.length }})</h3>
       </div>
       
-      <div class="overflow-x-auto">
+      <div v-if="usersLoading" class="p-6">
+        <div class="animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div class="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+        </div>
+      </div>
+      
+      <div v-else-if="membresEquipe.length === 0" class="p-6 text-center text-gray-500">
+        Aucun membre d'équipe trouvé dans votre département
+      </div>
+
+      <div v-else class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Poste</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Solde congés</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dernière absence</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="membre in equipe" :key="membre.id" class="hover:bg-gray-50">
+            <tr v-for="membre in membresEquipe" :key="membre.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ membre.nom }}</div>
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10">
+                    <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                      <span class="text-sm font-medium text-gray-700">
+                        {{ membre.prenom ? membre.prenom[0] : '' }}{{ membre.nom ? membre.nom[0] : '' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">{{ membre.prenom }} {{ membre.nom }}</div>
+                    <div class="text-sm text-gray-500">{{ membre.role }}</div>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ membre.poste }}
+                {{ membre.email }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-sm font-medium text-gray-900">{{ membre.soldeConges }} jours</span>
+                <div class="text-sm">
+                  <div class="font-medium text-gray-900">{{ membre.solde_conges || 0 }} jours</div>
+                  <div class="text-gray-500">disponibles</div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="['inline-flex px-2 py-1 text-xs font-semibold rounded-full', getStatusColor(membre.status)]">
+                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getStatusColor(membre.status)]">
+                  <span class="mr-1">{{ getStatusIcon(membre.status) }}</span>
                   {{ membre.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ membre.derniereAbsence }}
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex space-x-2">
+                  <button class="text-blue-600 hover:text-blue-900">
+                    Voir détails
+                  </button>
+                  <button class="text-green-600 hover:text-green-900">
+                    Historique
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
