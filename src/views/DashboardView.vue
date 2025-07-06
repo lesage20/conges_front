@@ -676,6 +676,84 @@ onMounted(() => {
         </div>
 
         <!-- Section pour managers/DRH : Department overview -->
+        <div v-else-if="isManager && managerStats">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">État des congés de l'équipe</h3>
+          
+          <!-- Prochain retour -->
+          <div v-if="managerStats.equipe.prochain_retour" class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="flex items-center mb-2">
+              <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <h4 class="font-semibold text-blue-800">Prochain retour</h4>
+            </div>
+            <p class="text-sm text-blue-700">
+              <strong>{{ managerStats.equipe.prochain_retour.nom }}</strong> dans 
+              <strong>{{ managerStats.equipe.prochain_retour.jours_restants }}</strong> jour(s)
+            </p>
+            <p class="text-xs text-blue-600">
+              Le {{ managerStats.equipe.prochain_retour.date_fin }}
+            </p>
+          </div>
+
+          <!-- Employés actuellement en congé -->
+          <div v-if="managerStats.equipe.employes_en_conge && managerStats.equipe.employes_en_conge.length > 0" class="mb-4">
+            <h4 class="font-semibold text-gray-900 mb-2">En congé ({{ managerStats.equipe.employes_en_conge.length }})</h4>
+            <div class="space-y-2">
+              <div v-for="(employe, index) in managerStats.equipe.employes_en_conge.slice(0, 3)" :key="index" 
+                   class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div>
+                  <p class="font-medium text-gray-900 text-sm">{{ employe.nom }}</p>
+                  <p class="text-xs text-gray-600">{{ employe.date_debut }} - {{ employe.date_fin }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-yellow-700">{{ employe.jours_restants }}j</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Message si aucun employé en congé -->
+          <div v-else class="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <div class="flex items-center">
+              <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-sm text-green-800">Toute l'équipe est présente</p>
+            </div>
+          </div>
+
+          <!-- Prochains départs -->
+          <div v-if="managerStats.equipe.prochains_departs && managerStats.equipe.prochains_departs.length > 0" class="mb-4">
+            <h4 class="font-semibold text-gray-900 mb-2">Prochains départs</h4>
+            <div class="space-y-2">
+              <div v-for="(depart, index) in managerStats.equipe.prochains_departs.slice(0, 3)" :key="index" 
+                   class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div>
+                  <p class="font-medium text-gray-900 text-sm">{{ depart.nom }}</p>
+                  <p class="text-xs text-gray-600">{{ depart.date_debut }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-purple-700">{{ depart.jours_avant_depart }}j</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Résumé équipe -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm text-gray-600">Équipe présente</span>
+              <span class="font-semibold text-gray-900">{{ managerStats.equipe.employes_presents }}/{{ managerStats.equipe.nombre_employes }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <span class="text-sm text-blue-600">Demandes en attente</span>
+              <span class="font-semibold text-blue-800">{{ managerStats.equipe.demandes_en_attente }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section pour DRH : Department overview -->
         <div v-else>
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Aperçu des départements</h3>
           <div class="space-y-4">
@@ -716,10 +794,10 @@ onMounted(() => {
         <router-link to="/departements" class="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium">
           Voir tous les départements →
         </router-link>
+        </div>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <style scoped>
