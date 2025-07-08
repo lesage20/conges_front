@@ -268,14 +268,14 @@
               <div class="flex justify-end">
                 <button 
                   @click="changePassword"
-                  :disabled="passwordForm.loading"
+                  :disabled="loading"
                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <svg v-if="passwordForm.loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  {{ passwordForm.loading ? 'Modification en cours...' : 'Mettre à jour le mot de passe' }}
+                  {{ loading ? 'Modification en cours...' : 'Mettre à jour le mot de passe' }}
                 </button>
               </div>
             </div>
@@ -289,21 +289,20 @@
 <script>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { useApi } from '../composables/useApi'
+import { useAuth } from '../composables/useAuth'
 
 export default {
   name: 'ParametresView',
   setup() {
     const activeTab = ref('profile')
     const authStore = useAuthStore()
-    const { callApi } = useApi()
+    const { changePassword: changeUserPassword, loading, error } = useAuth()
 
     // Formulaire de changement de mot de passe
     const passwordForm = ref({
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
-      loading: false,
       successMessage: '',
       errorMessage: '',
       errors: {
@@ -370,24 +369,14 @@ export default {
         return
       }
       
-      passwordForm.value.loading = true
-      
       try {
-        const response = await callApi('/users/change-password', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authStore.token}`
-          },
-          body: JSON.stringify({
-            current_password: passwordForm.value.currentPassword,
-            new_password: passwordForm.value.newPassword
-          })
-        })
+        const result = await changeUserPassword(
+          passwordForm.value.currentPassword,
+          passwordForm.value.newPassword
+        )
         
-        if (response.ok) {
-          const data = await response.json()
-          passwordForm.value.successMessage = data.message
+        if (result) {
+          passwordForm.value.successMessage = result.message || 'Mot de passe modifié avec succès'
           
           // Réinitialiser le formulaire
           passwordForm.value.currentPassword = ''
@@ -398,15 +387,10 @@ export default {
           setTimeout(() => {
             passwordForm.value.successMessage = ''
           }, 5000)
-        } else {
-          const errorData = await response.json()
-          passwordForm.value.errorMessage = errorData.detail || 'Erreur lors du changement de mot de passe'
         }
-      } catch (error) {
-        console.error('Erreur lors du changement de mot de passe:', error)
-        passwordForm.value.errorMessage = 'Erreur de connexion. Veuillez réessayer.'
-      } finally {
-        passwordForm.value.loading = false
+      } catch (err) {
+        console.error('Erreur lors du changement de mot de passe:', err)
+        passwordForm.value.errorMessage = err.message || 'Erreur lors du changement de mot de passe'
       }
     }
 
@@ -414,6 +398,7 @@ export default {
       activeTab,
       authStore,
       passwordForm,
+      loading,
       getUserInitials,
       getRoleName,
       formatDate,

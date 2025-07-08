@@ -86,7 +86,7 @@ export function useAuth() {
 
   // Route pour changer de mot de passe
   const changePassword = async (currentPassword, newPassword) => {
-    return await api.patch('/auth/change-password', {
+    return await api.post('/users/change-password', {
       current_password: currentPassword,
       new_password: newPassword
     })

@@ -30,7 +30,11 @@ const formData = ref({
   role: 'employe',
   date_embauche: '',
   departement_id: null,
-  is_active: true
+  is_active: true,
+  date_naissance: '',
+  nombre_enfants: 0,
+  has_medaille_honneur: false,
+  genre: ''
 })
 
 // Computed
@@ -84,7 +88,11 @@ const resetForm = () => {
     role: 'employe',
     date_embauche: '',
     departement_id: null,
-    is_active: true
+    is_active: true,
+    date_naissance: '',
+    nombre_enfants: 0,
+    has_medaille_honneur: false,
+    genre: ''
   }
 }
 
@@ -107,7 +115,11 @@ const openEditModal = (employee) => {
     role: employee.role || 'employe',
     date_embauche: employee.date_embauche || '',
     departement_id: employee.departement_id || null,
-    is_active: employee.is_active !== undefined ? employee.is_active : true
+    is_active: employee.is_active !== undefined ? employee.is_active : true,
+    date_naissance: employee.date_naissance || '',
+    nombre_enfants: employee.nombre_enfants || 0,
+    has_medaille_honneur: employee.has_medaille_honneur || false,
+    genre: employee.genre || ''
   }
   showModal.value = true
 }
@@ -134,7 +146,11 @@ const submitEmployee = async () => {
       role: formData.value.role,
       date_embauche: formData.value.date_embauche,
       departement_id: formData.value.departement_id || null,
-      is_active: formData.value.is_active
+      is_active: formData.value.is_active,
+      date_naissance: formData.value.date_naissance || null,
+      nombre_enfants: parseInt(formData.value.nombre_enfants) || 0,
+      has_medaille_honneur: formData.value.has_medaille_honneur,
+      genre: formData.value.genre || null
     }
     
     if (editingEmployee.value) {
@@ -447,6 +463,64 @@ onMounted(() => {
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="N° CNI ou Passeport"
               />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="date_naissance" class="block text-sm font-medium text-gray-700 mb-1">
+                Date de naissance
+              </label>
+              <input
+                id="date_naissance"
+                v-model="formData.date_naissance"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="genre" class="block text-sm font-medium text-gray-700 mb-1">
+                Genre
+              </label>
+              <select
+                id="genre"
+                v-model="formData.genre"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sélectionner</option>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="nombre_enfants" class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre d'enfants
+              </label>
+              <input
+                id="nombre_enfants"
+                v-model="formData.nombre_enfants"
+                type="number"
+                min="0"
+                max="20"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
+              />
+            </div>
+
+            <div class="flex items-center pt-6">
+              <input
+                id="has_medaille_honneur"
+                v-model="formData.has_medaille_honneur"
+                type="checkbox"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label for="has_medaille_honneur" class="ml-2 block text-sm text-gray-700">
+                Médaille d'honneur
+              </label>
             </div>
           </div>
         </div>
