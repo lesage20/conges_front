@@ -1,6 +1,7 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth.js'
 
 export default {
@@ -8,6 +9,7 @@ export default {
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
+    const toast = useToast()
     
     const email = ref('')
     const password = ref('')
@@ -17,14 +19,17 @@ export default {
     
     const handleLogin = async () => {
       if (!email.value || !password.value) {
+        toast.warning('Veuillez saisir votre email et mot de passe')
         return
       }
       
       try {
         await authStore.login(email.value, password.value)
+        toast.success('Connexion réussie ! Bienvenue')
         router.push('/')
       } catch (err) {
-        // L'erreur est déjà gérée dans le store
+        // Afficher un toast d'erreur
+        toast.error(err.message || 'Erreur de connexion')
         console.error('Erreur de connexion:', err)
       }
     }
@@ -32,7 +37,6 @@ export default {
     return {
       email,
       password,
-      error: authStore.error,
       isLoading: authStore.loading,
       handleLogin
     }
@@ -171,20 +175,6 @@ export default {
                 class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
                 placeholder="••••••••"
               />
-            </div>
-          </div>
-
-          <!-- Message d'erreur -->
-          <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-red-800">{{ error }}</p>
-              </div>
             </div>
           </div>
 

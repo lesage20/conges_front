@@ -35,14 +35,36 @@ export function useAuth() {
       const duration = Date.now() - startTime
 
       if (!response.ok) {
-        const errorData = await response.text()
-        let errorMessage = `Erreur ${response.status}`
+        let errorMessage = 'Identifiants incorrects'
         
         try {
-          const parsedError = JSON.parse(errorData)
-          errorMessage = parsedError.detail || parsedError.message || errorMessage
+          const errorData = await response.text()
+          if (errorData) {
+            try {
+              const parsedError = JSON.parse(errorData)
+              errorMessage = parsedError.detail || parsedError.message || errorMessage
+            } catch {
+              // Si ce n'est pas du JSON, utiliser le texte brut s'il est informatif
+              if (errorData.length < 200 && !errorData.includes('<!DOCTYPE')) {
+                errorMessage = errorData
+              }
+            }
+          }
         } catch {
-          errorMessage = errorData || errorMessage
+          // En cas d'erreur lors de la lecture de la réponse, utiliser un message générique
+        }
+
+        // Personnaliser les messages selon le code d'erreur
+        if (response.status === 401) {
+          errorMessage = 'Email ou mot de passe incorrect'
+        } else if (response.status === 403) {
+          errorMessage = 'Accès refusé'
+        } else if (response.status === 500) {
+          errorMessage = 'Erreur serveur, veuillez réessayer'
+        } else if (response.status >= 400 && response.status < 500) {
+          errorMessage = errorMessage || 'Données de connexion invalides'
+        } else {
+          errorMessage = 'Impossible de se connecter au serveur'
         }
 
         // Log l'erreur
@@ -50,7 +72,13 @@ export function useAuth() {
         throw new Error(errorMessage)
       }
 
-      const responseData = await response.json()
+      let responseData
+      try {
+        responseData = await response.json()
+      } catch (jsonError) {
+        console.error('Erreur lors du parsing JSON:', jsonError)
+        throw new Error('Réponse serveur invalide')
+      }
       api.data.value = responseData
 
       return responseData

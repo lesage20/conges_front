@@ -1,8 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useToast } from 'vue-toastification'
 import { useUsers } from '@/composables/useUsers'
 import { useDepartements } from '@/composables/useDepartements'
 import BaseModal from '@/components/BaseModal.vue'
+
+// Toast notifications
+const toast = useToast()
 
 // Composables
 const { getUsers, createUser, updateUser, deleteUser, loading, error } = useUsers()
@@ -168,13 +172,20 @@ const submitEmployee = async () => {
     // Recharger la liste des employés
     await loadEmployes()
     
+    // Afficher le toast de succès
+    if (editingEmployee.value) {
+      toast.success(`Employé "${employeeData.prenom} ${employeeData.nom}" modifié avec succès`)
+    } else {
+      toast.success(`Employé "${employeeData.prenom} ${employeeData.nom}" créé avec succès`)
+    }
+    
     // Fermer la modal
     closeModal()
     
-    console.log('Employé sauvegardé avec succès')
-    
   } catch (err) {
     console.error('Erreur lors de la sauvegarde:', err)
+    const action = editingEmployee.value ? 'modification' : 'création'
+    toast.error(`Erreur lors de la ${action} de l'employé`)
   } finally {
     isSubmitting.value = false
   }
@@ -185,9 +196,10 @@ const confirmDelete = async (employee) => {
     try {
       await deleteUser(employee.id)
       await loadEmployes()
-      console.log('Employé supprimé avec succès')
+      toast.success(`Employé "${employee.prenom} ${employee.nom}" supprimé avec succès`)
     } catch (err) {
       console.error('Erreur lors de la suppression:', err)
+      toast.error('Erreur lors de la suppression de l\'employé')
     }
   }
 }

@@ -196,26 +196,26 @@ const joursSemaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="text-center p-4 bg-blue-50 rounded-lg">
           <p class="text-2xl font-bold text-blue-600">
-            {{ calendarData.congres?.length || 0 }}
+            {{ calendarData.conges?.length || 0 }}
           </p>
           <p class="text-sm text-gray-600">
-            {{ calendarData.congres?.length > 1 ? 'Congés' : 'Congé' }} ce mois
+            {{ calendarData.conges?.length > 1 ? 'Congés' : 'Congé' }} ce mois
           </p>
         </div>
         
         <div class="text-center p-4 bg-green-50 rounded-lg">
           <p class="text-2xl font-bold text-green-600">
-            {{ calendarData.congres?.reduce((total, conge) => total + (conge.working_time || 0), 0) || 0 }}
+            {{ calendarData.conges?.reduce((total, conge) => total + (conge.working_time || 0), 0) || 0 }}
           </p>
           <p class="text-sm text-gray-600">Jours ouvrés</p>
         </div>
         
         <div class="text-center p-4 bg-purple-50 rounded-lg">
           <p class="text-2xl font-bold text-purple-600">
-            {{ new Set(calendarData.congres?.map(conge => conge.demandeur_id) || []).size }}
+            {{ new Set(calendarData.conges?.map(conge => conge.demandeur_id) || []).size }}
           </p>
           <p class="text-sm text-gray-600">
-            {{ new Set(calendarData.congres?.map(conge => conge.demandeur_id) || []).size > 1 ? 'Personnes' : 'Personne' }} en congé
+            {{ new Set(calendarData.conges?.map(conge => conge.demandeur_id) || []).size > 1 ? 'Personnes' : 'Personne' }} en congé
           </p>
         </div>
       </div>
