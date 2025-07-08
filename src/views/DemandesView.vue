@@ -18,17 +18,21 @@ const {
   canCreateNewDemande 
 } = useDemandesConges()
 
-const { user } = useAuthStore()
+const authStore = useAuthStore()
+const { user } = authStore
 const toast = useToast()
 
 const showModal = ref(false)
 const selectedFilter = ref('all')
 const selectedStatus = ref('all')
+const dateDebutFilter = ref('')
+const dateFinFilter = ref('')
 const demandes = ref([])
 const isSubmitting = ref(false)
 const canCreateNew = ref(true)
 const existingDemande = ref(null)
 const creationBlockReason = ref('')
+const showFilters = ref(false)
 
 const formData = ref({
   type: 'conges_payes',
@@ -38,19 +42,43 @@ const formData = ref({
   motif: ''
 })
 
+// Statuts disponibles
+const statutsConge = [
+  { key: 'all', label: 'Tous les statuts' },
+  { key: 'en_attente', label: 'En attente' },
+  { key: 'approuvee', label: 'Approuvées' },
+  { key: 'refusee', label: 'Refusées' },
+  { key: 'annulee', label: 'Annulées' },
+  { key: 'demande_annulation', label: 'Demande d\'annulation' }
+]
+
 // Computed properties
 const filteredDemandes = computed(() => {
   let filtered = demandes.value
 
+  // Filtrer par statut
   if (selectedStatus.value !== 'all') {
-    // Adapter les statuts selon l'API backend
-    const statusMap = {
-      'En attente': 'en_attente',
-      'Approuvée': 'approuvee',
-      'Refusée': 'refusee'
-    }
-    const apiStatus = statusMap[selectedStatus.value]
-    filtered = filtered.filter(d => d.statut === apiStatus)
+    filtered = filtered.filter(d => d.statut === selectedStatus.value)
+  }
+
+
+
+  // Filtrer par date de début
+  if (dateDebutFilter.value) {
+    filtered = filtered.filter(d => {
+      const demandeDate = new Date(d.date_debut)
+      const filterDate = new Date(dateDebutFilter.value)
+      return demandeDate >= filterDate
+    })
+  }
+
+  // Filtrer par date de fin
+  if (dateFinFilter.value) {
+    filtered = filtered.filter(d => {
+      const demandeDate = new Date(d.date_fin)
+      const filterDate = new Date(dateFinFilter.value)
+      return demandeDate <= filterDate
+    })
   }
 
   return filtered
@@ -152,6 +180,15 @@ const getStatusLabel = (statut) => {
     default: return statut
   }
 }
+
+
+
+
+const hasActiveFilters = computed(() => {
+  return selectedStatus.value !== 'all' || 
+         dateDebutFilter.value || 
+         dateFinFilter.value
+})
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('fr-FR')
@@ -307,7 +344,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div v-if="authStore.isAuthenticated && user" class="space-y-6">
     <!-- Header -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div class="flex items-center justify-between">
@@ -395,26 +432,102 @@ onMounted(() => {
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="flex items-center space-x-4">
-          <label class="text-sm font-medium text-gray-700">Filtrer par statut:</label>
-          <select 
-            v-model="selectedStatus"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">Toutes</option>
-            <option value="En attente">En attente</option>
-            <option value="Approuvée">Approuvées</option>
-            <option value="Refusée">Refusées</option>
-          </select>
+      <div class="space-y-6">
+        <!-- Header avec bouton toggle et réinitialisation -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <button 
+              @click="showFilters = !showFilters"
+              class="flex items-center text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+            >
+              <svg 
+                :class="['w-5 h-5 mr-2 transition-transform', showFilters ? 'rotate-90' : '']" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+              Filtres
+              <span v-if="hasActiveFilters && !showFilters" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {{ filteredDemandes.length }}/{{ demandes.length }}
+              </span>
+            </button>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button 
+              v-if="hasActiveFilters"
+              @click="clearFilters"
+              class="text-sm text-blue-600 hover:text-blue-700 transition-colors flex items-center"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Effacer les filtres
+            </button>
+            <button 
+              @click="showFilters = !showFilters"
+              class="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              {{ showFilters ? 'Masquer' : 'Afficher' }}
+            </button>
+          </div>
         </div>
-        
-        <!-- <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          Exporter
-        </button> -->
+
+        <!-- Contenu des filtres (masquable) -->
+        <div v-show="showFilters" class="space-y-6">
+          <!-- Filtres par statut -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-3">Filtrer par statut:</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="statut in statutsConge"
+                :key="statut.key"
+                @click="selectedStatus = statut.key"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  selectedStatus === statut.key
+                    ? 'bg-blue-800 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                {{ statut.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Filtres par date -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Date de début (à partir de):</label>
+              <input
+                v-model="dateDebutFilter"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Date de fin (jusqu'à):</label>
+              <input
+                v-model="dateFinFilter"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <!-- Résumé des filtres actifs -->
+          <div v-if="hasActiveFilters" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="flex items-center">
+              <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.586V4z"></path>
+              </svg>
+              <span class="text-sm font-medium text-blue-800">
+                {{ filteredDemandes.length }} demande(s) trouvée(s) sur {{ demandes.length }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -476,7 +589,6 @@ onMounted(() => {
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employé</th>
-              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th> -->
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Période</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jours compté</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jours total</th>
@@ -492,16 +604,12 @@ onMounted(() => {
                    <div class="text-sm text-gray-500">{{ demande.user?.departement || 'Non assigné' }}</div>
                  </div>
                </td>
-               <!-- <td class="px-6 py-4 whitespace-nowrap">
-                 <div class="text-sm text-gray-900">Congés payés</div>
-                 <div class="text-sm text-gray-500">{{ demande.motif || 'Aucun motif' }}</div>
-               </td> -->
                <td class="px-6 py-4 whitespace-nowrap">
                  <div class="text-sm text-gray-900">
                    {{ formatDate(demande.date_debut) }} - {{ formatDate(demande.date_fin) }}
                  </div>
                  <div class="text-sm text-gray-500">
-                   Demandé le {{ formatDate(demande.date_creation) }}
+                   {{ demande.motif || 'Demandé le ' + formatDate(demande.date_creation) }}
                  </div>
                </td>
                <td class="px-6 py-4 whitespace-nowrap">
@@ -647,6 +755,14 @@ onMounted(() => {
          </button>
        </template>
      </BaseModal>
+   </div>
+   
+   <!-- Message de chargement pendant la déconnexion -->
+   <div v-else-if="!authStore.isAuthenticated" class="flex items-center justify-center min-h-screen">
+     <div class="text-center">
+       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+       <p class="mt-4 text-gray-600">Redirection en cours...</p>
+     </div>
    </div>
  </template>
 

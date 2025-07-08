@@ -94,7 +94,7 @@ export function useAuth() {
   // Route de déconnexion (côté serveur si nécessaire)
   const logout = async () => {
     try {
-      return await api.post('/auth/logout')
+      return await api.post('/auth/logout', {})
     } catch (error) {
       // Même si l'API échoue, on peut continuer la déconnexion côté client
       console.warn('Erreur lors de la déconnexion serveur:', error)

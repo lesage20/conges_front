@@ -77,7 +77,15 @@ export function useApi() {
         throw new Error(errorMessage)
       }
 
-      const responseData = await response.json()
+      let responseData
+      try {
+        const text = await response.text()
+        responseData = text ? JSON.parse(text) : {}
+      } catch (jsonError) {
+        // Si la réponse n'est pas du JSON valide, retourner un objet vide
+        responseData = {}
+      }
+      
       data.value = responseData
 
       logApiCall(finalOptions.method || 'GET', endpoint, response.status, duration)
