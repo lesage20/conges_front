@@ -200,15 +200,15 @@ export default {
               <div class="space-y-2 text-sm text-gray-600">
                 <div class="flex justify-between">
                   <span class="font-medium">DRH :</span>
-                  <span class="font-mono text-xs">drh@example.com</span>
+                  <span class="font-mono text-xs">drh@entreprise.com / admin123</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="font-medium">Chef de service :</span>
-                  <span class="font-mono text-xs">chef@example.com</span>
+                  <span class="font-mono text-xs">chef.dev@entreprise.com / chef123</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="font-medium">Employé :</span>
-                  <span class="font-mono text-xs">employe@example.com</span>
+                  <span class="font-mono text-xs">antoine.moreau@entreprise.com / emp123</span>
                 </div>
                 <div class="text-center mt-3 pt-2 border-t border-gray-200">
                   <span class="text-xs text-gray-500">Mot de passe : <code class="bg-gray-100 px-1 rounded">password</code></span>

@@ -21,6 +21,11 @@ export function useDemandesConges() {
     return await api.get('/demandes-conges/mes-demandes')
   }
 
+  // Récupérer les demandes d'un utilisateur spécifique
+  const getDemandesByUser = async (userId) => {
+    return await api.get(`/demandes-conges/user/${userId}`)
+  }
+
   // Récupérer les demandes en attente de validation (Manager/DRH uniquement)
   const getDemandesEnAttente = async () => {
     return await api.get('/demandes-conges/en-attente')
@@ -205,6 +210,7 @@ export function useDemandesConges() {
     getDemandes,
     getDemande,
     getMyDemandes,
+    getDemandesByUser,
     getDemandesEnAttente,
     canCreateNewDemande,
     createDemande,
