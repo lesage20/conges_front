@@ -23,9 +23,9 @@ export function useUsers() {
     return await api.patch('/users/me', userData)
   }
 
-  // Créer un nouvel utilisateur (via register)
-  const createUser = async (userData) => {
-    return await api.post('/auth/register', userData)
+  // Créer un nouvel employé (via users/create-employee)
+  const createEmployee = async (userData) => {
+    return await api.post('/users/create-employee', userData)
   }
 
   // Mettre à jour un utilisateur (superuser uniquement)
@@ -74,7 +74,7 @@ export function useUsers() {
     getUser,
     getCurrentUser,
     updateCurrentUser,
-    createUser,
+    createEmployee,
     updateUser,
     deleteUser,
     getUsersByDepartement,

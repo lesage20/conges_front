@@ -24,7 +24,7 @@
               </button>
               
               <button
-                @click="testCreateUser"
+                @click="testCreateEmployee"
                 :disabled="usersApi.loading.value"
                 class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
@@ -153,7 +153,7 @@ const testGetUsers = async () => {
   }
 }
 
-const testCreateUser = async () => {
+const testCreateEmployee = async () => {
   try {
     const userData = {
       nom: 'Doe',
@@ -162,7 +162,7 @@ const testCreateUser = async () => {
       role: 'employe',
       departement_id: 1
     }
-    await usersApi.createUser(userData)
+    await usersApi.createEmployee(userData)
     console.log('Utilisateur créé:', usersApi.data.value)
   } catch (error) {
     console.error('Erreur lors de la création de l\'utilisateur:', error)

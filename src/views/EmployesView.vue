@@ -10,7 +10,7 @@ import BaseModal from '@/components/BaseModal.vue'
 const toast = useToast()
 
 // Composables
-const { getUsers, createUser, updateUser, deleteUser, loading, error } = useUsers()
+const { getUsers, createEmployee, updateUser, deleteUser, loading, error } = useUsers()
 const { getDepartements } = useDepartements()
 const { getDemandesByUser } = useDemandesConges()
 
@@ -214,7 +214,7 @@ const submitEmployee = async () => {
     } else {
       // Création - le mot de passe est requis
       employeeData.password = formData.value.password.trim()
-      await createUser(employeeData)
+              await createEmployee(employeeData)
     }
     
     // Recharger la liste des employés
