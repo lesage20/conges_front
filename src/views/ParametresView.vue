@@ -203,7 +203,7 @@
                   <p class="text-sm text-gray-600">Recevoir des notifications par email</p>
                 </div>
                 <label class="inline-flex items-center">
-                  <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                  <input type="checkbox" disabled class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                 </label>
               </div>
               
@@ -213,7 +213,7 @@
                   <p class="text-sm text-gray-600">Notifications pour les nouvelles demandes</p>
                 </div>
                 <label class="inline-flex items-center">
-                  <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                  <input type="checkbox" disabled checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                 </label>
               </div>
               
@@ -223,7 +223,7 @@
                   <p class="text-sm text-gray-600">Notifications quand vos demandes sont approuvées</p>
                 </div>
                 <label class="inline-flex items-center">
-                  <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                  <input type="checkbox" disabled checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                 </label>
               </div>
               
@@ -233,7 +233,7 @@
                   <p class="text-sm text-gray-600">Rappels avant les congés programmés</p>
                 </div>
                 <label class="inline-flex items-center">
-                  <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                  <input type="checkbox" disabled checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                 </label>
               </div>
             </div>
