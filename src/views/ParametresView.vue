@@ -90,19 +90,19 @@
           <div>
             <h4 class="text-sm font-medium text-gray-900 mb-4">Identité</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Nom complet</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.nom || 'Non défini' }}</dd>
               </div>
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Email</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.email || 'Non défini' }}</dd>
               </div>
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Téléphone</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.telephone || 'Non défini' }}</dd>
               </div>
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Numéro de pièce d'identité</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.numero_piece_identite || 'Non défini' }}</dd>
               </div>
@@ -112,21 +112,36 @@
           <div>
             <h4 class="text-sm font-medium text-gray-900 mb-4">Informations professionnelles</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Rôle</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ getRoleName() }}</dd>
               </div>
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Poste</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.poste || 'Non défini' }}</dd>
               </div>
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Département</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.departement_nom || authStore.user?.departement || 'Non défini' }}</dd>
               </div>
-              <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <dt class="text-sm font-medium text-gray-500">Date d'embauche</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ formatDate(authStore.user?.date_embauche) || 'Non défini' }}</dd>
+              </div>
+             
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <dt class="text-sm font-medium text-gray-500">Date de naissance</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ formatDate(authStore.user?.date_naissance) || 'Non défini' }}</dd>
+              </div>
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <dt class="text-sm font-medium text-gray-500">Genre</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.genre || 'Non défini' }}</dd>
+              </div>
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <dt class="text-sm font-medium text-gray-500">Nombre d'enfants</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ authStore.user?.nombre_enfants || 'Non défini' }}</dd>
               </div>
             </div>
           </div>
@@ -139,8 +154,8 @@
                 <dd class="mt-1 text-2xl font-semibold text-green-900">{{ authStore.user?.solde_conges || 0 }} jours</dd>
               </div>
               <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <dt class="text-sm font-medium text-blue-800">Temps de travail</dt>
-                <dd class="mt-1 text-2xl font-semibold text-blue-900">{{ authStore.user?.temps_travail || 'Non défini' }}h/semaine</dd>
+                <dt class="text-sm font-medium text-blue-800">Nombre de jours de congés restant</dt>
+                <dd class="mt-1 text-2xl font-semibold text-blue-900">{{ authStore.user?.solde_conges_restant  }} jours</dd>
               </div>
             </div>
           </div>
