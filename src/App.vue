@@ -9,12 +9,12 @@ import {
   Users, 
   BarChart3, 
   Settings,
-  Bell,
   Plus,
   Building,
   UsersRound,
   LogOut
 } from 'lucide-vue-next'
+import NotificationDropdown from './components/NotificationDropdown.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -235,10 +235,7 @@ const handleLogout = async () => {
           </div>
           <div class="flex items-center space-x-3">
             <!-- Notifications -->
-            <button class="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-              <Bell :size="20" />
-              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">2</span>
-            </button>
+            <NotificationDropdown />
           </div>
         </div>
       </header>

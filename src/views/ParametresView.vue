@@ -10,7 +10,7 @@
     <div class="border-b border-gray-200">
       <nav class="flex space-x-8" aria-label="Tabs">
         <button
-          @click="activeTab = 'profile'"
+          @click="switchTab('profile')"
           :class="[
             'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === 'profile'
@@ -26,7 +26,7 @@
           </div>
         </button>
         <button
-          @click="activeTab = 'notifications'"
+          @click="switchTab('notifications')"
           :class="[
             'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === 'notifications'
@@ -42,7 +42,7 @@
           </div>
         </button>
         <button
-          @click="activeTab = 'security'"
+          @click="switchTab('security')"
           :class="[
             'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === 'security'
@@ -170,48 +170,139 @@
       </div>
 
       <!-- Notifications Tab -->
-      <div v-show="activeTab === 'notifications'" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-6">Notifications</h2>
-        
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-medium text-gray-900">Notifications email</h3>
-              <p class="text-sm text-gray-600">Recevoir des notifications par email</p>
+      <div v-show="activeTab === 'notifications'" class="space-y-6">
+        <!-- Header avec actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-gray-900">Notifications</h2>
+            <div class="flex items-center space-x-3">
+              <button 
+                @click="getNotifications()"
+                :disabled="notificationsLoading"
+                class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Actualiser
+              </button>
+              <button 
+                @click="marquerToutesCommeLues()"
+                v-if="notifications.some(n => !n.lue)"
+                class="text-sm text-green-600 hover:text-green-800 font-medium"
+              >
+                Tout marquer comme lu
+              </button>
             </div>
-            <label class="inline-flex items-center">
-              <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
-            </label>
           </div>
           
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-medium text-gray-900">Demandes de congés</h3>
-              <p class="text-sm text-gray-600">Notifications pour les nouvelles demandes</p>
+          <!-- Préférences de notification -->
+          <div class="border-b border-gray-200 pb-6 mb-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Préférences</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">Notifications email</h4>
+                  <p class="text-sm text-gray-600">Recevoir des notifications par email</p>
+                </div>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                </label>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">Demandes de congés</h4>
+                  <p class="text-sm text-gray-600">Notifications pour les nouvelles demandes</p>
+                </div>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                </label>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">Approbations</h4>
+                  <p class="text-sm text-gray-600">Notifications quand vos demandes sont approuvées</p>
+                </div>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                </label>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">Rappels</h4>
+                  <p class="text-sm text-gray-600">Rappels avant les congés programmés</p>
+                </div>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                </label>
+              </div>
             </div>
-            <label class="inline-flex items-center">
-              <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
-            </label>
           </div>
           
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-medium text-gray-900">Approbations</h3>
-              <p class="text-sm text-gray-600">Notifications quand vos demandes sont approuvées</p>
+          <!-- Liste des notifications -->
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Historique des notifications</h3>
+            
+            <!-- Loading state -->
+            <div v-if="notificationsLoading && notifications.length === 0" class="text-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p class="mt-2 text-sm text-gray-600">Chargement des notifications...</p>
             </div>
-            <label class="inline-flex items-center">
-              <input type="checkbox" checked class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
-            </label>
-          </div>
-          
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-medium text-gray-900">Rappels</h3>
-              <p class="text-sm text-gray-600">Rappels avant les congés programmés</p>
+            
+            <!-- Pas de notifications -->
+            <div v-else-if="notifications.length === 0" class="text-center py-8">
+              <div class="text-gray-400 mb-2">
+                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-5-7a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p class="text-gray-600 font-medium">Aucune notification</p>
+              <p class="text-sm text-gray-500 mt-1">Vous êtes à jour !</p>
             </div>
-            <label class="inline-flex items-center">
-              <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
-            </label>
+            
+            <!-- Liste des notifications -->
+            <div v-else class="space-y-3">
+              <div 
+                v-for="notification in notifications" 
+                :key="notification.id"
+                class="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-200': !notification.lue }"
+                @click="handleNotificationClick(notification)"
+              >
+                <div class="flex items-start space-x-3">
+                  <!-- Icône de type -->
+                  <div 
+                    class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                    :class="getCouleurType(notification.type_notification)"
+                  >
+                    {{ getIconeType(notification.type_notification) }}
+                  </div>
+
+                  <!-- Contenu -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                      <h4 class="text-sm font-medium text-gray-900">
+                        {{ notification.titre }}
+                      </h4>
+                      <div class="flex items-center space-x-2">
+                        <!-- Indicateur non lu -->
+                        <div 
+                          v-if="!notification.lue" 
+                          class="w-2 h-2 bg-blue-600 rounded-full"
+                        ></div>
+                        <!-- Temps -->
+                        <span class="text-xs text-gray-500 whitespace-nowrap">
+                          {{ formaterTemps(notification.date_creation) }}
+                        </span>
+                      </div>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-600">
+                      {{ notification.message }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -287,16 +378,43 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useAuth } from '../composables/useAuth'
+import { useNotifications } from '../composables/useNotifications'
 
 export default {
   name: 'ParametresView',
   setup() {
+    const route = useRoute()
     const activeTab = ref('profile')
     const authStore = useAuthStore()
     const { changePassword: changeUserPassword, loading, error } = useAuth()
+    
+    // Composable notifications
+    const {
+      notifications,
+      loading: notificationsLoading,
+      getNotifications,
+      marquerCommeLue,
+      marquerToutesCommeLues,
+      formaterTemps,
+      getIconeType,
+      getCouleurType
+    } = useNotifications()
+
+    // Définir l'onglet actif selon les query params
+    onMounted(() => {
+      if (route.query.tab) {
+        activeTab.value = route.query.tab
+      }
+      
+      // Charger les notifications si on est sur l'onglet notifications
+      if (activeTab.value === 'notifications') {
+        getNotifications()
+      }
+    })
 
     // Formulaire de changement de mot de passe
     const passwordForm = ref({
@@ -394,6 +512,21 @@ export default {
       }
     }
 
+    // Gérer le changement d'onglet avec chargement des notifications
+    const switchTab = async (tab) => {
+      activeTab.value = tab
+      if (tab === 'notifications' && notifications.value.length === 0) {
+        await getNotifications()
+      }
+    }
+
+    // Gérer le clic sur une notification
+    const handleNotificationClick = async (notification) => {
+      if (!notification.lue) {
+        await marquerCommeLue(notification.id)
+      }
+    }
+
     return {
       activeTab,
       authStore,
@@ -402,7 +535,18 @@ export default {
       getUserInitials,
       getRoleName,
       formatDate,
-      changePassword
+      changePassword,
+      switchTab,
+      // Notifications
+      notifications,
+      notificationsLoading,
+      getNotifications,
+      marquerCommeLue,
+      marquerToutesCommeLues,
+      formaterTemps,
+      getIconeType,
+      getCouleurType,
+      handleNotificationClick
     }
   }
 }

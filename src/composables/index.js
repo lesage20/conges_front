@@ -10,6 +10,7 @@ export { useDemandesConges } from './useDemandesConges'
 export { useDepartements } from './useDepartements'
 export { usePageTransitions } from './usePageTransitions'
 export { useCalendrier } from './useCalendrier'
+export { useNotifications } from './useNotifications'
 
 // Configuration par défaut de l'API
 export const API_CONFIG = {
